@@ -337,4 +337,83 @@ export const API_V1_CATALOG = [
   { method: 'GET', path: '/api/v1/onboarding', auth: 'bearer', module: null },
   { method: 'GET', path: '/api/v1/settings', auth: 'bearer', module: null },
   { method: 'PATCH', path: '/api/v1/settings', auth: 'bearer', module: null },
+  { method: 'POST', path: '/api/v1/auth/logout', auth: 'bearer', module: null, minRole: 'user' },
+  { method: 'GET', path: '/api/v1/auth/me', auth: 'bearer', module: null, minRole: 'user' },
+  { method: 'GET', path: '/api/v1/tasks/:id', auth: 'bearer', module: 'tasks', minRole: 'user' },
+  { method: 'PATCH', path: '/api/v1/tasks/:id', auth: 'bearer', module: 'tasks', minRole: 'user' },
+  { method: 'DELETE', path: '/api/v1/tasks/:id', auth: 'bearer', module: 'tasks', minRole: 'manager' },
+  { method: 'GET', path: '/api/v1/staff', auth: 'bearer', module: 'staff', minRole: 'user' },
+  { method: 'GET', path: '/api/v1/staff/:id', auth: 'bearer', module: 'staff', minRole: 'user' },
+  { method: 'PATCH', path: '/api/v1/staff/:id', auth: 'bearer', module: 'staff', minRole: 'manager' },
+  { method: 'GET', path: '/api/v1/users/:id', auth: 'bearer', module: 'staff', minRole: 'user' },
+  { method: 'PATCH', path: '/api/v1/users/:id', auth: 'bearer', module: 'staff', minRole: 'manager' },
+  { method: 'GET', path: '/api/v1/schedules/:id', auth: 'bearer', module: 'scheduling', minRole: 'user' },
+  { method: 'PATCH', path: '/api/v1/schedules/:id', auth: 'bearer', module: 'scheduling', minRole: 'manager' },
+  { method: 'DELETE', path: '/api/v1/schedules/:id', auth: 'bearer', module: 'scheduling', minRole: 'manager' },
+  { method: 'GET', path: '/api/v1/attendance', auth: 'bearer', module: 'geofence_attendance', minRole: 'user' },
+  { method: 'POST', path: '/api/v1/attendance/clock-out', auth: 'bearer', module: 'geofence_attendance', minRole: 'user' },
+  { method: 'GET', path: '/api/v1/incidents/:id', auth: 'bearer', module: 'incidents', minRole: 'user' },
+  { method: 'PATCH', path: '/api/v1/incidents/:id', auth: 'bearer', module: 'incidents', minRole: 'manager' },
+  { method: 'GET', path: '/api/v1/wallet/entries', auth: 'bearer', module: 'wallet', minRole: 'user' },
+  { method: 'POST', path: '/api/v1/notifications/read-all', auth: 'bearer', module: 'notifications', minRole: 'user' },
 ] as const;
+
+/** Routes whose catalogue row has no minRole still require this floor. */
+export const API_ROLE_FLOOR: Record<string, 'manager' | 'admin'> = {
+  'POST /api/v1/departments': 'manager',
+  'POST /api/v1/invitations': 'manager',
+  'GET /api/v1/audit': 'admin',
+  'POST /api/v1/schedules': 'manager',
+  'POST /api/v1/geofences': 'admin',
+  'POST /api/v1/attendance/travel-day': 'manager',
+  'GET /api/v1/staff-health': 'manager',
+  'POST /api/v1/staff-health': 'manager',
+  'POST /api/v1/wallet/adjustment': 'admin',
+  'POST /api/v1/cctv/cameras': 'manager',
+  'PATCH /api/v1/settings': 'admin',
+};
+
+const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export type ApiCatalogRoute = (typeof API_V1_CATALOG)[number];
+
+export function matchApiRoute(method: string, parts: readonly string[]): ApiCatalogRoute | null {
+  if (parts.length === 0 || parts.some((part) => part.length === 0)) return null;
+  const normalized = parts.map((part) => (UUID_SEGMENT.test(part) ? ':id' : part));
+  const path = `/api/v1/${normalized.join('/')}`;
+  return API_V1_CATALOG.find((route) => route.method === method && route.path === path) ?? null;
+}
+
+export function routeMinRole(route: { method: string; path: string; minRole?: 'user' | 'manager' | 'admin' }): 'user' | 'manager' | 'admin' {
+  if ('minRole' in route && route.minRole) return route.minRole;
+  return API_ROLE_FLOOR[`${route.method} ${route.path}`] ?? 'user';
+}
+
+export type GateDecision =
+  | { ok: true }
+  | { ok: false; status: number; code: string; message: string; module?: string };
+
+export function gateApiRoute(
+  route: { auth: string; module: string | null; method: string; path: string; minRole?: 'user' | 'manager' | 'admin' },
+  actor: { role: UserRole } | null,
+  enabled: Iterable<string>,
+): GateDecision {
+  if (route.auth === 'none') return { ok: true };
+  if (!actor || !isUserRole(actor.role)) {
+    return { ok: false, status: 401, code: 'unauthorized', message: 'Bearer token is missing or expired.' };
+  }
+  if (route.module && !moduleEnabled(enabled, route.module)) {
+    return {
+      ok: false,
+      status: 403,
+      code: 'module_disabled',
+      message: `The ${route.module} module is off for this company.`,
+      module: route.module,
+    };
+  }
+  const minRole = routeMinRole(route);
+  if (RANK[actor.role] < RANK[minRole]) {
+    return { ok: false, status: 403, code: 'forbidden', message: 'You do not have permission for this route.' };
+  }
+  return { ok: true };
+}

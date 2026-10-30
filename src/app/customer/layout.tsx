@@ -15,9 +15,24 @@ export default async function CustomerLayout({ children }: { children: ReactNode
   const session = await getCustomerSession();
   if (!session) return children;
 
+  let unread = 0;
+  if (isSupabaseConfigured()) {
+    try {
+      const notes = await supabaseAdmin
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', session.companyId)
+        .eq('user_id', session.user.id)
+        .eq('read', false);
+      if (!notes.error) unread = notes.count ?? 0;
+    } catch {
+      unread = 0;
+    }
+  }
+
   if (!isSupabaseConfigured()) {
     return (
-      <CustomerShell companyName="Workspace" industry="" email={session.user.email} role={session.user.role} name={nameFrom(session)}>
+      <CustomerShell companyName="Workspace" industry="" email={session.user.email} role={session.user.role} name={nameFrom(session)} unread={0}>
         <ConfigNotice
           title="Database is not configured"
           body="Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY, then apply migrations 001–003."
@@ -53,6 +68,7 @@ export default async function CustomerLayout({ children }: { children: ReactNode
       email={session.user.email}
       role={session.user.role}
       name={name}
+      unread={unread}
     >
       {children}
     </CustomerShell>

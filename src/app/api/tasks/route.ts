@@ -2,16 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCustomerSession } from '@/lib/customer-session';
 import { supabaseAdmin } from '@/lib/supabase';
 import { z } from 'zod';
-import { PlatformError } from '@/lib/platform-error';
 import { canAssignToOthers, canSeeCompanyTasks } from '@/lib/platform-rules';
-import { assertModule, writeAudit } from '@/lib/services/tenant';
+import { jsonFromError } from '@/lib/json-error';
+import {
+  isIsoDateTime,
+  normalizeTaskStatus,
+  readJson,
+  taskVisibilityFilter,
+} from '@/lib/request-guards';
+import { assertModule, assertSameCompanyDepartment, assertSameCompanyUser, writeAudit } from '@/lib/services/tenant';
+
+const optionalTimestamp = z.union([z.literal(''), z.string().max(40).refine(isIsoDateTime)]).optional();
 
 const createTaskSchema = z.object({
   title: z.string().min(1).max(255),
-  description: z.string().optional(),
+  description: z.string().max(4000).optional(),
   assigned_to_id: z.string().uuid().optional(),
   department_id: z.string().uuid().optional(),
-  due_date: z.string().optional(),
+  due_date: optionalTimestamp,
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
 });
 
@@ -26,7 +34,10 @@ export async function GET(request: NextRequest) {
     };
     await assertModule(actor, 'tasks');
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
+    const status = normalizeTaskStatus(searchParams.get('status'));
+    if (status === null) {
+      return NextResponse.json({ error: 'Invalid input data' }, { status: 400 });
+    }
     const assignedToMe = searchParams.get('assigned_to_me') === 'true';
 
     let query = supabaseAdmin
@@ -44,13 +55,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (assignedToMe || !canSeeCompanyTasks(actor.role)) {
-      query = query.or(`assigned_to_id.eq.${actor.userId},assigned_by_id.eq.${actor.userId}`);
+      query = query.or(taskVisibilityFilter(actor.userId));
     }
 
     const { data, error } = await query;
 
     if (error) {
-      console.error('Tasks fetch error:', error);
+      console.error('Tasks fetch error');
       return NextResponse.json(
         { error: 'Failed to fetch tasks' },
         { status: 500 }
@@ -59,14 +70,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Get tasks error:', error);
-    if (error instanceof PlatformError) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
-    }
-    return NextResponse.json(
-      { error: 'Not authenticated' },
-      { status: 401 }
-    );
+    return jsonFromError(error, 'Get tasks error');
   }
 }
 
@@ -80,16 +84,23 @@ export async function POST(request: NextRequest) {
       email: session.user.email,
     };
     await assertModule(actor, 'tasks');
-    const body = await request.json();
+    const body = await readJson(request);
     const data = createTaskSchema.parse(body);
     if (data.assigned_to_id && data.assigned_to_id !== actor.userId && !canAssignToOthers(actor.role)) {
       return NextResponse.json({ error: 'Floor staff can only keep tasks on their own list.' }, { status: 403 });
     }
+    if (data.assigned_to_id) await assertSameCompanyUser(actor.companyId, data.assigned_to_id);
+    if (data.department_id) await assertSameCompanyDepartment(actor.companyId, data.department_id);
 
     const { data: task, error } = await supabaseAdmin
       .from('tasks')
       .insert({
-        ...data,
+        title: data.title,
+        description: data.description ?? null,
+        assigned_to_id: data.assigned_to_id ?? null,
+        department_id: data.department_id ?? null,
+        due_date: data.due_date || null,
+        priority: data.priority,
         company_id: session.companyId,
         assigned_by_id: session.user.id,
         status: 'todo',
@@ -98,7 +109,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Task creation error:', error);
+      console.error('Task creation error');
       return NextResponse.json(
         { error: 'Failed to create task' },
         { status: 500 }
@@ -108,19 +119,6 @@ export async function POST(request: NextRequest) {
     await writeAudit(actor, 'task.created', 'task', task.id, { title: data.title });
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
-    console.error('Create task error:', error);
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input data', details: error.issues },
-        { status: 400 }
-      );
-    }
-    if (error instanceof PlatformError) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
-    }
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return jsonFromError(error, 'Create task error');
   }
 }

@@ -1,11 +1,13 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 
+import { PlatformError } from '@/lib/platform-error';
+import { CUSTOMER_SESSION_COOKIE } from '@/lib/request-guards';
 import { actorFromToken } from '@/lib/services/tenant';
 import { supabaseAdmin } from '@/lib/supabase';
 import { User } from '@/types';
 
-const SESSION_COOKIE_NAME = 'customer_session';
+const SESSION_COOKIE_NAME = CUSTOMER_SESSION_COOKIE;
 
 const cookieOptions = {
   httpOnly: true,
@@ -53,7 +55,7 @@ export async function clearCustomerSession() {
 export async function requireCustomerSession(): Promise<CustomerSession> {
   const session = await getCustomerSession();
   if (!session) {
-    throw new Error('Not authenticated');
+    throw new PlatformError('unauthorized', 'Not authenticated', 401);
   }
   return session;
 }
