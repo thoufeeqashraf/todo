@@ -42,7 +42,7 @@ Repo status the same day, outside these checkboxes: customer web and `/api/v1` i
 
 - [x] Multi-tenant auth and company signup (web customer login, first admin, bearer-token `/api/v1`; Supabase migrations required; `/login` stays the dev operator gate)
 - [x] Industry selection and per-company module toggles, including industry defaults
-- [ ] Company branding. The console type and sidebar shell are in progress; per-company logos and colours are not.
+- [ ] Company branding. The console type and sidebar shell are in progress; per-company logos and colours are not. The public landing page and auth entrances now use the ToDo App name and logomark.
 - [x] Scaffold the web app with Next.js and shadcn (`npm run dev`)
 - [x] CI smoke for the web shell: lint, typecheck, unit tests, production build, and Playwright (landing, signup, customer login, unauthenticated `/customer`) with no Supabase keys
 - [ ] Scaffold iOS and Android after the mobile toolkit is chosen
