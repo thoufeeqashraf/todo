@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
-import { ThemeToggle } from '@/components/theme-toggle';
+import { AuthShell } from '@/components/marketing/auth-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -53,47 +53,61 @@ export function InviteForm({ token }: { token: string }) {
   }
 
   return (
-    <div className="app-canvas flex min-h-svh flex-col">
-      <header className="glass flex h-14 items-center justify-between border-b px-6">
-        <Link href="/" className="text-sm font-semibold tracking-tight">Workplace</Link>
-        <ThemeToggle />
-      </header>
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-16">
-        <Card className="bg-card/85 shadow-lg shadow-primary/5">
-          <CardHeader>
-            <CardTitle>Join your company</CardTitle>
-            <CardDescription>This invitation does not grant access to any other company. Email is not sent; the link itself is the invite.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {done ? (
-              <p className="text-sm">
-                Account created.{' '}
-                <Link href="/customer-login" className="text-primary underline-offset-4 hover:underline">Sign in</Link>
-              </p>
-            ) : (
-              <form onSubmit={onSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First name</Label>
-                  <Input id="firstName" name="firstName" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last name</Label>
-                  <Input id="lastName" name="lastName" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" name="password" type="password" minLength={8} required />
-                  <p className="text-xs text-muted-foreground">At least 8 characters</p>
-                </div>
-                {message ? <p className="text-sm text-destructive">{message}</p> : null}
-                <Button type="submit" className="w-full" disabled={pending}>
-                  {pending ? 'Creating…' : 'Create account'}
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-      </main>
-    </div>
+    <AuthShell
+      kicker="Invitation"
+      title="Join one company. Only that company."
+      body="The link is the invitation. Email is not sent, and the account does not reach any other tenant."
+      points={[
+        'First name, last name, and a password',
+        'At least 8 characters',
+        'Then customer sign-in for that company',
+      ]}
+    >
+      <Card className="bg-card/85 shadow-lg shadow-primary/5">
+        <CardHeader>
+          <CardTitle>
+            <h1 className="text-base font-medium tracking-tight">Join your company</h1>
+          </CardTitle>
+          <CardDescription>This invitation does not grant access to any other company. Email is not sent; the link itself is the invite.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {done ? (
+            <p className="text-sm">
+              Account created.{' '}
+              <Link href="/customer-login" className="text-primary underline-offset-4 hover:underline">Sign in</Link>
+            </p>
+          ) : (
+            <form onSubmit={onSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First name</Label>
+                <Input id="firstName" name="firstName" autoComplete="given-name" className="h-10" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last name</Label>
+                <Input id="lastName" name="lastName" autoComplete="family-name" className="h-10" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  className="h-10"
+                  minLength={8}
+                  aria-describedby="invite-password-hint"
+                  required
+                />
+                <p id="invite-password-hint" className="text-xs text-muted-foreground">At least 8 characters</p>
+              </div>
+              {message ? <p role="alert" className="text-sm text-destructive">{message}</p> : null}
+              <Button type="submit" className="h-10 w-full" disabled={pending}>
+                {pending ? 'Creating…' : 'Create account'}
+              </Button>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+    </AuthShell>
   );
 }
