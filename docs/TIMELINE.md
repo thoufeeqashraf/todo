@@ -30,6 +30,8 @@ Repo status the same day, outside these checkboxes: customer web and `/api/v1` i
 
 Company subscription billing is in the repo the same day: migration `005_billing.sql`, INR plans Starter / Growth / Scale, `POST /api/billing/checkout` (company admin), and `POST /api/billing/webhook`. Stripe keys are optional at build time. Checkout returns 503 until they are set. The customer billing screen is unchanged. Wallet money movement is still the Transaction Junction stub.
 
+The customer billing screen at `/customer/billing` now reads `subscriptions` and `invoices` for the signed-in company. Company admins can Subscribe or Upgrade. Those buttons post to `POST /api/billing/checkout` and open the Stripe URL. If that route returns 503 `Billing not configured`, the page toasts and shows “Billing is not set up yet”. Missing billing tables show an empty state and do not crash the page. Usage counts are still not a bill. The wallet is unchanged.
+
 ## Done
 
 - [x] Project memory, Cursor rules, and shadcn as the web UI library
