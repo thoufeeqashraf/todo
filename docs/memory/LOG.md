@@ -22,4 +22,4 @@ Append a short entry when a meaningful piece of work lands. Do not log speculati
 - Proof photos and video, ten-level visibility, AI roster, AI staff health, and mobile apps are not built.
 - Replaced native `bcrypt` with `bcryptjs` and deferred Supabase client setup until a request uses it, so a Vercel build with no env vars can resolve dependencies and finish `npm run build`.
 - Recorded the web control-plane decision and wrote the `/api/v1` contract in `docs/API-V1.md`. The Vercel preview for the dependency fix is READY.
-- Started the UI redo: Geist Sans and Geist Mono, a type scale, indigo accent, dark mode, and a customer sidebar shell with search. Individual screens are still the previous layout inside that shell.
+- Rebuilt the visible web UI in small commits: sidebar shell, landing, signup industry cards, customer sign-in, dashboard, module switches, and the task table. Module screens sit in the shell. Operator `/login` behaviour is unchanged. Company branding (logos and colours) is still not built.

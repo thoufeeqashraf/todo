@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 import { loadModule, runModule } from '../../actions';
 
@@ -28,43 +29,44 @@ export function ModuleScreen({
     setPending(true);
     const result = await runModule(slug, payload);
     setMessage(result.ok ? 'Saved.' : result.error);
+    if (result.ok) toast.success('Saved');
+    else toast.error(result.error);
     setPending(false);
     setState(await loadModule(slug));
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-6 py-4">
-          <Link href="/customer">
-            <Button variant="ghost" size="sm" className="mb-2">← Back to Dashboard</Button>
-          </Link>
-          <h1 className="text-2xl font-semibold capitalize">{slug.replace('-', ' ')}</h1>
-          {state?.ok && <p className="text-sm text-muted-foreground">{state.blurb}</p>}
-        </div>
-      </header>
-      <main className="container mx-auto grid gap-6 px-6 py-8 lg:grid-cols-[1fr_1.2fr]">
-        <Card>
+    <div className="space-y-6">
+      <div>
+        <h1 className="capitalize">{slug.replace('-', ' ')}</h1>
+        {state?.ok && <p className="text-sm text-muted-foreground">{state.blurb}</p>}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+        <Card className="bg-card/80 shadow-sm">
           <CardHeader>
             <CardTitle>Update</CardTitle>
+            <CardDescription>The server still checks the module and your role.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={onSubmit} className="space-y-3">
               <Fields slug={slug} />
-              {message && <p className="text-sm">{message}</p>}
+              {message && <p className="text-sm text-muted-foreground">{message}</p>}
               <Button type="submit" disabled={pending}>{pending ? 'Saving…' : 'Save'}</Button>
             </form>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-card/80 shadow-sm">
           <CardHeader>
             <CardTitle>Company data</CardTitle>
+            <CardDescription>What the server returned for this company.</CardDescription>
           </CardHeader>
           <CardContent>
-            <pre className="overflow-auto text-xs">{JSON.stringify(state, null, 2)}</pre>
+            <ScrollArea className="h-80 rounded-lg bg-muted/50">
+              <pre className="font-numeric p-3 text-xs">{JSON.stringify(state, null, 2)}</pre>
+            </ScrollArea>
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }
