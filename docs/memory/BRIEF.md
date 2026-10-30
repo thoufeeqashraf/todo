@@ -61,3 +61,6 @@ Company admins can open `/customer/audit`, `/customer/team`, and `/customer/bill
 ## Customer console
 
 `/customer/projects`, `/customer/clients`, and `/customer/notifications` follow the projects, clients, and notifications modules. Projects is a board and list of tasks. Clients has no table yet. Notifications is the signed-in user’s in-app inbox. Email and push are not connected.
+## On the web (30 Oct 2026)
+
+Customer analytics is `/customer/analytics`. It is available only when the reports module is on. It reads tasks, attendance, and incidents already stored for the signed-in company. It does not add tables. Incident severity is classified from `incidents.status`. The route is exported from `src/components/analytics/nav.ts` for the customer shell.

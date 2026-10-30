@@ -347,3 +347,4 @@ Web UI component library is already decided outside this brief: shadcn, until re
 
 Schema notes for this repo live in `docs/DATABASE.md`. The app uses the Supabase service role. Row level security denies the anon key. Sample rows, when seeded, belong to company slug `demo-kitchen` and are not written onto any other company.
 30 Oct 2026 implementation note: the future mobile client calls `/api/v1` (`docs/API-V1.md`). The server checks the bearer token, the company, the role, and whether the module is on. Payments, map tiles, CCTV streams, and email remain stubs and are not called.
+Customer analytics at `/customer/analytics` is a reports-module view of existing task, attendance, and incident rows. It does not add tables. Incident severity is classified from `incidents.status` because that table has no severity column.
