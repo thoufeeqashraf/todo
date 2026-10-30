@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 
+import { safeInternalPath } from '@/lib/owner/model';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -43,7 +44,7 @@ export function LoginForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
       toast.success('Signed in');
-      router.push('/customer');
+      router.push(safeInternalPath(searchParams?.get('next')) ?? '/customer');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setError(message);

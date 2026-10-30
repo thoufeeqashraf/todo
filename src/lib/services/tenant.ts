@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 
 import { hashPassword } from '@/lib/auth-utils';
+import { loginAllowed } from '@/lib/owner/model';
 import { PlatformError } from '@/lib/platform-error';
 import {
   API_VERSION,
@@ -233,6 +234,21 @@ export async function actorFromToken(rawToken: string): Promise<TenantActor> {
   if (!user || user.is_active !== true || !isUserRole(role)) {
     throw new PlatformError('unauthorized', 'Bearer token is missing or expired.', 401);
   }
+  const companyResult = await supabaseAdmin
+    .from('companies')
+    .select('slug, settings')
+    .eq('id', user.company_id)
+    .maybeSingle();
+  fail(companyResult.error, 'Could not read the company.');
+  const company = companyResult.data as Row | null;
+  const slug = company?.slug ? String(company.slug) : null;
+  if (!slug || !loginAllowed({ email: String(user.email), role, companySlug: slug }, company?.settings)) {
+    throw new PlatformError(
+      slug ? 'forbidden' : 'unauthorized',
+      slug ? 'This business is suspended.' : 'Bearer token is missing or expired.',
+      slug ? 403 : 401,
+    );
+  }
   return {
     userId: String(user.id),
     companyId: String(user.company_id),
@@ -256,7 +272,7 @@ export async function loginWithPassword(email: string, password: string, company
   const normalized = email.toLowerCase();
   const joined = await supabaseAdmin
     .from('users')
-    .select('id, email, password_hash, role, company_id, is_active, companies!users_company_id_fkey!inner(id, slug, name)')
+    .select('id, email, password_hash, role, company_id, is_active, companies!users_company_id_fkey!inner(id, slug, name, settings)')
     .eq('email', normalized)
     .eq('is_active', true);
 
@@ -284,7 +300,7 @@ export async function loginWithPassword(email: string, password: string, company
     }
     const companyIds = [...new Set((plain.data ?? []).map((row) => String((row as Row).company_id)))];
     const companies = companyIds.length
-      ? await supabaseAdmin.from('companies').select('id, slug, name').in('id', companyIds)
+      ? await supabaseAdmin.from('companies').select('id, slug, name, settings').in('id', companyIds)
       : { data: [] as Row[], error: null };
     if (companies.error) {
       console.error('loginWithPassword company lookup failed', {
@@ -302,7 +318,15 @@ export async function loginWithPassword(email: string, password: string, company
     });
   }
 
-  const matches: { id: string; companyId: string; slug: string; name: string }[] = [];
+  const matches: {
+    id: string;
+    companyId: string;
+    slug: string;
+    name: string;
+    email: string;
+    role: string;
+    settings: unknown;
+  }[] = [];
   for (const user of rows) {
     const company = companyRecord(user.companies);
     if (!company?.slug || !company.name) continue;
@@ -320,23 +344,46 @@ export async function loginWithPassword(email: string, password: string, company
       companyId: String(user.company_id),
       slug: String(company.slug),
       name: String(company.name),
+      email: String(user.email),
+      role: String(user.role),
+      settings: company.settings,
     });
   }
   if (matches.length === 0) {
     throw new PlatformError('unauthorized', 'Invalid credentials.', 401);
   }
-  const chosen = companySlug ? matches.filter((item) => item.slug === companySlug) : matches;
-  if (chosen.length !== 1) {
-    throw new PlatformError('company_required', 'Choose the company for this email.', 409, {
-      companies: matches.map((item) => ({ slug: item.slug, name: item.name })),
-    });
+  const open = (item: (typeof matches)[number]) =>
+    loginAllowed({ email: item.email, role: item.role, companySlug: item.slug }, item.settings);
+  let picked: (typeof matches)[number] | undefined;
+  if (companySlug) {
+    const requested = matches.filter((item) => item.slug === companySlug);
+    if (requested.length !== 1) {
+      throw new PlatformError('company_required', 'Choose the company for this email.', 409, {
+        companies: matches.filter(open).map((item) => ({ slug: item.slug, name: item.name })),
+      });
+    }
+    if (!open(requested[0])) {
+      throw new PlatformError('forbidden', 'This business is suspended.', 403);
+    }
+    picked = requested[0];
+  } else {
+    const available = matches.filter(open);
+    if (available.length === 0) {
+      throw new PlatformError('forbidden', 'This business is suspended.', 403);
+    }
+    if (available.length !== 1) {
+      throw new PlatformError('company_required', 'Choose the company for this email.', 409, {
+        companies: available.map((item) => ({ slug: item.slug, name: item.name })),
+      });
+    }
+    picked = available[0];
   }
-  const session = await issueToken(chosen[0].id, chosen[0].companyId);
+  const session = await issueToken(picked.id, picked.companyId);
   await writeAudit(
-    { userId: chosen[0].id, companyId: chosen[0].companyId },
+    { userId: picked.id, companyId: picked.companyId },
     'auth.token_issued',
     'user',
-    chosen[0].id,
+    picked.id,
     {},
   );
   return session;

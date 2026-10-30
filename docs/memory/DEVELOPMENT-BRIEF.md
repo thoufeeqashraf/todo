@@ -361,3 +361,14 @@ This note records what the web app serves. It does not change phase scope, quote
 - `/customer/module/onboarding` remains the older company, industry, region, module, people, and first-task list. It is a different screen.
 - Other UI should import `/help` and `/customer/onboarding` from `src/components/help/nav.ts`.
 - No new table or migration.
+
+## 15. Platform owner console (repo, 30 Oct 2026)
+
+This note records the vendor console. It does not change phase scope, quotes, or the open decisions above.
+
+- The product vendor is not the same as a company admin. `/owner` lists and configures every business.
+- An owner is an email in `PLATFORM_OWNER_EMAILS` (comma-separated; default `thoufeeq2009@gmail.com`) or an admin of the company with slug `todo-app-hq`. The check is server-side. Other accounts get 403. Signed-out requests get 401.
+- Suspension is `companies.settings.status`. No new migration. Migration 005 billing tables are read when present and skipped when they are not.
+- The same commands are available at `/api/owner` and `/api/v1/owner` for a future mobile control plane. Every change is written to `audit_logs`.
+- Setup and routes are in `docs/OWNER-CONSOLE.md`.
+- Document requests to `/owner` return HTTP 401 or 403 from `src/proxy.ts` before the page streams. A missing session cookie does not read tenant data.

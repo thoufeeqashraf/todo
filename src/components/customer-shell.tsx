@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BarChart3,
   Bell,
@@ -13,6 +13,7 @@ import {
   Contact,
   FolderKanban,
   CreditCard,
+  Crown,
   HeartPulse,
   LayoutDashboard,
   MapPin,
@@ -130,6 +131,7 @@ export function CustomerShell({
   role,
   name,
   unread = 0,
+  platformOwner = false,
 }: {
   children: React.ReactNode;
   companyName: string;
@@ -138,15 +140,18 @@ export function CustomerShell({
   role: string;
   name: string;
   unread?: number;
+  platformOwner?: boolean;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const items = groups.flatMap((group) => group.items).filter((item) => !item.admin || role === 'admin');
-  const results = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return items.filter((item) => !needle || item.label.toLowerCase().includes(needle));
-  }, [items, query]);
+  const ownerItems: NavItem[] = platformOwner ? [{ href: '/owner', label: 'Platform Owner', icon: Crown }] : [];
+  const visibleGroups = ownerItems.length
+    ? [{ label: 'Vendor', items: ownerItems }, ...groups]
+    : groups;
+  const items = visibleGroups.flatMap((group) => group.items).filter((item) => !item.admin || role === 'admin');
+  const needle = query.trim().toLowerCase();
+  const results = items.filter((item) => !needle || item.label.toLowerCase().includes(needle));
   const current = items.find((item) => item.href !== '/customer' && (pathname === item.href || pathname.startsWith(`${item.href}/`)));
   const crumbs = current
     ? [{ href: '/customer', label: 'Dashboard' }, { href: current.href, label: current.label }]
@@ -193,7 +198,7 @@ export function CustomerShell({
           </DropdownMenu>
         </SidebarHeader>
         <SidebarContent>
-          {groups.map((group) => {
+          {visibleGroups.map((group) => {
             const visible = group.items.filter((item) => !item.admin || role === 'admin');
             if (visible.length === 0) return null;
             return (
@@ -237,6 +242,9 @@ export function CustomerShell({
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled className="capitalize">{role}</DropdownMenuItem>
+              {platformOwner ? (
+                <DropdownMenuItem render={<Link href="/owner" />}>Platform Owner</DropdownMenuItem>
+              ) : null}
               {role === 'admin' ? (
                 <DropdownMenuItem render={<Link href="/customer/settings" />}>Settings</DropdownMenuItem>
               ) : null}
@@ -280,7 +288,21 @@ export function CustomerShell({
             <ThemeToggle />
           </div>
         </header>
-        <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">{children}</div>
+        <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+          {platformOwner ? (
+            <Link
+              href="/owner"
+              className="mb-6 flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 text-sm shadow-sm ring-1 ring-foreground/10 transition-colors hover:bg-muted/60"
+            >
+              <span>
+                <span className="font-medium">Platform Owner</span>
+                <span className="mt-0.5 block text-muted-foreground">Every business on this product. Open the vendor console.</span>
+              </span>
+              <Crown className="size-4 shrink-0 text-primary" />
+            </Link>
+          ) : null}
+          {children}
+        </div>
       </SidebarInset>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="gap-3 sm:max-w-lg">

@@ -33,6 +33,10 @@ Company subscription billing is in the repo the same day: migration `005_billing
 
 The customer billing screen at `/customer/billing` now reads `subscriptions` and `invoices` for the signed-in company. Company admins can Subscribe or Upgrade. Those buttons post to `POST /api/billing/checkout` and open the Stripe URL. If that route returns 503 `Billing not configured`, the page toasts and shows “Billing is not set up yet”. Missing billing tables show an empty state and do not crash the page. Usage counts are still not a bill. The wallet is unchanged.
 
+The platform owner console is in the repo the same day, outside these checkboxes. `/owner` is the vendor view for every business. It does not add a migration. Suspension is stored on `companies.settings`. A company admin is not a platform owner. See `docs/OWNER-CONSOLE.md`.
+
+Unsigned and non-owner requests for that console return HTTP 401 or 403 from `src/proxy.ts` before the page streams. That does not change the checkboxes below.
+
 ## Done
 
 - [x] Project memory, Cursor rules, and shadcn as the web UI library
