@@ -6,18 +6,21 @@ import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 
 export function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const dark = resolvedTheme === 'dark';
+  const { setTheme } = useTheme();
 
   return (
     <Button
       type="button"
       variant="outline"
       size="icon"
-      aria-label={dark ? 'Use light mode' : 'Use dark mode'}
-      onClick={() => setTheme(dark ? 'light' : 'dark')}
+      aria-label="Toggle color theme"
+      onClick={() => {
+        const dark = document.documentElement.classList.contains('dark');
+        setTheme(dark ? 'light' : 'dark');
+      }}
     >
-      {dark ? <Sun /> : <Moon />}
+      <Sun className="hidden dark:block" />
+      <Moon className="block dark:hidden" />
     </Button>
   );
 }

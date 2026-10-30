@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,11 +23,15 @@ export function LoginForm() {
     undefined,
   );
 
+  useEffect(() => {
+    if (state?.error) toast.error(state.error);
+  }, [state]);
+
   return (
     <Card className="bg-card/85 shadow-lg shadow-primary/5">
       <CardHeader>
         <CardTitle>
-          <h1>Operator sign in</h1>
+          <h1 className="text-base font-medium tracking-tight">Operator sign in</h1>
         </CardTitle>
         <CardDescription>
           Development only. Any username and password enters. Choose Admin or
@@ -85,8 +90,8 @@ export function LoginForm() {
             </p>
           ) : null}
         </CardContent>
-        <CardFooter>
-          <Button type="submit" className="w-full" disabled={pending}>
+        <CardFooter className="flex-col items-stretch gap-3">
+          <Button type="submit" className="h-10 w-full" disabled={pending}>
             {pending ? "Signing in…" : "Sign in"}
           </Button>
           <p className="text-center text-xs text-muted-foreground">

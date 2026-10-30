@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  BarChart3,
   Bell,
   Building2,
   CalendarDays,
   ChevronRight,
   ClipboardList,
+  Contact,
+  FolderKanban,
   CreditCard,
   HeartPulse,
   LayoutDashboard,
@@ -72,6 +75,7 @@ const groups: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/customer', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/customer/tasks', label: 'Tasks', icon: ClipboardList },
+      { href: '/customer/projects', label: 'Projects', icon: FolderKanban },
       { href: '/customer/incidents', label: 'Incidents', icon: Shield },
       { href: '/customer/scheduling', label: 'Scheduling', icon: CalendarDays },
     ],
@@ -90,8 +94,10 @@ const groups: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/customer/wallet', label: 'Wallet', icon: Wallet },
       { href: '/customer/pos', label: 'POS', icon: Store },
+      { href: '/customer/clients', label: 'Clients', icon: Contact },
       { href: '/customer/reports', label: 'Reports', icon: Receipt },
-      { href: '/customer/module/notifications', label: 'Notifications', icon: Bell },
+      { href: '/customer/analytics', label: 'Analytics', icon: BarChart3 },
+      { href: '/customer/notifications', label: 'Notifications', icon: Bell },
     ],
   },
   {
@@ -100,7 +106,7 @@ const groups: { label: string; items: NavItem[] }[] = [
       { href: '/customer/modules', label: 'Modules', icon: Sparkles, admin: true },
       { href: '/customer/team', label: 'Team', icon: Users, admin: true },
       { href: '/customer/billing', label: 'Billing', icon: CreditCard, admin: true },
-      { href: '/customer/module/onboarding', label: 'Onboarding', icon: Building2 },
+      { href: '/customer/onboarding', label: 'Onboarding', icon: Building2 },
       { href: '/customer/cctv', label: 'CCTV', icon: Video },
       { href: '/customer/module/mini-apps', label: 'Mini-apps', icon: Sparkles },
       { href: '/customer/audit', label: 'Audit log', icon: Shield, admin: true },

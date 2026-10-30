@@ -23,6 +23,10 @@ Console screens added the same day, still outside the checkboxes. The shell shou
 | `/customer/wallet` | `wallet` | `wallet_accounts`, `wallet_entries` |
 | `/customer/pos` | `pos` | `pos_orders` |
 | `/customer/cctv` | `cctv` | `cameras` |
+Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. `/api/v1` now has task CRUD, staff update, schedule update, attendance list and clock-out, paginated lists, a consistent error object, in-memory rate limits, and security headers. The contract is `docs/API-V1.md`. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window.
+Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. The customer console also has module-gated `/customer/projects` (task board and list), `/customer/clients` (directory; no clients table), and `/customer/notifications` (in-app inbox).
+Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. Customer analytics at `/customer/analytics` is a reports-module page over existing task, attendance, and incident rows. It is not the March role dashboards.
+Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. A public help center lives at `/help` (static articles). Signed-in customers have a setup checklist at `/customer/onboarding` that counts existing teams, invitations, users, enabled modules, and active geofences. Mobile on that list stays open. No new tables.
 
 ## Done
 
@@ -39,9 +43,10 @@ Console screens added the same day, still outside the checkboxes. The shell shou
 
 - [x] Multi-tenant auth and company signup (web customer login, first admin, bearer-token `/api/v1`; Supabase migrations required; `/login` stays the dev operator gate)
 - [x] Industry selection and per-company module toggles, including industry defaults
-- [ ] Company branding. The console type and sidebar shell are in progress; per-company logos and colours are not.
+- [ ] Company branding. The console type and sidebar shell are in progress; per-company logos and colours are not. The public landing page and auth entrances now use the ToDo App name and logomark.
 - [x] Scaffold the web app with Next.js and shadcn (`npm run dev`)
 - [x] CI smoke for the web shell: lint, typecheck, unit tests, production build, and Playwright (landing, signup, customer login, unauthenticated `/customer`) with no Supabase keys
+- [x] Public help center at `/help` and customer setup checklist at `/customer/onboarding` (static articles, checklist from existing rows, no migration)
 - [ ] Scaffold iOS and Android after the mobile toolkit is chosen
 
 ## January 2027 — Hierarchy and visibility
@@ -51,14 +56,14 @@ Console screens added the same day, still outside the checkboxes. The shell shou
 
 ## February 2027 — Tasks and proof
 
-- [ ] Tasks, downward assignment, deadlines, and checklists. Basic task create/list and assignment rules exist. Checklists and proof media do not.
+- [ ] Tasks, downward assignment, deadlines, and checklists. Basic task create/list and assignment rules exist. `/customer/projects` shows those tasks as a board and a list. Checklists and proof media do not.
 - [ ] Comments, photo proof, and video proof
 
 ## March 2027 — Dashboards and notifications
 
-- [ ] Doer, assigner, and overseer dashboards
+- [ ] Doer, assigner, and overseer dashboards. `/customer/analytics` is a separate reports view and does not close this item.
 - [ ] Web console for officials and mobile flows for frontline staff
-- [ ] Notifications. In-app rows exist when the module is on. Email and push are not connected.
+- [ ] Notifications. In-app rows exist when the module is on. `/customer/notifications` is the inbox, with unread state and filters. Email and push are not connected.
 
 ## April 2027 — P1 acceptance, then the first P2 slice
 

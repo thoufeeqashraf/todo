@@ -6,7 +6,7 @@ Last updated: 30 Oct 2026. Canonical detail, scenarios, competitors, and quote m
 
 Multi-tenant SaaS for business operations. Companies run tasks, staff accountability, attendance, and industry-specific workflows. Later optional modules add duty rosters, a wallet, a consumer mini-app shell, POS QR ordering, and premium CCTV AI.
 
-Clients: web, iOS, and Android. The web platform has two logins. Admin and staff sign in to control the mobile app and manage the platform. Customers use a different login on the same web to run their business. Mobile is the app those customers use. Inside a customer company, officials use the customer web in depth and frontline people use mobile. A person outside a company staff context eventually gets a consumer mini-app marketplace. That consumer shell is P4.
+Clients: web, iOS, and Android. Mobile is not scaffolded. When it is, it calls `/api/v1` as written in `docs/API-V1.md` (bearer token, module gates, paginated lists). The web platform has two logins. Admin and staff sign in to control the mobile app and manage the platform. Customers use a different login on the same web to run their business. Mobile is the app those customers use. Inside a customer company, officials use the customer web in depth and frontline people use mobile. A person outside a company staff context eventually gets a consumer mini-app marketplace. That consumer shell is P4.
 
 Commercial model: monthly or yearly subscriptions. Target scale about 100,000 users across many companies.
 
@@ -58,3 +58,13 @@ Repo-shaped docs, written from the code on 30 Oct 2026: `docs/PRODUCT.md`, `docs
 ## Admin console
 
 Company admins can open `/customer/audit`, `/customer/team`, and `/customer/billing`. Audit and team read that company’s rows. Invites post to `POST /api/v1/invitations`. Billing shows plan, usage, and invoice placeholders and does not charge a card. The route list for the shell is `src/components/admin/nav.ts`.
+## Customer console
+
+`/customer/projects`, `/customer/clients`, and `/customer/notifications` follow the projects, clients, and notifications modules. Projects is a board and list of tasks. Clients has no table yet. Notifications is the signed-in user’s in-app inbox. Email and push are not connected.
+## On the web (30 Oct 2026)
+
+Customer analytics is `/customer/analytics`. It is available only when the reports module is on. It reads tasks, attendance, and incidents already stored for the signed-in company. It does not add tables. Incident severity is classified from `incidents.status`. The route is exported from `src/components/analytics/nav.ts` for the customer shell.
+See section 13 of `DEVELOPMENT-BRIEF.md` and the open list in `DECISIONS.md`. The web stack is Next.js. The mobile toolkit is still open. Each company chooses `za`, `eu`, or `multi` as its data region. Public pages currently say ToDo App. The development brief title is unchanged until that file is edited.
+## Help and setup (30 Oct 2026)
+
+`/help` is a public help center. Articles are static data in `src/content/help.ts`, with category filters and a page per slug. Signed-in customers open `/customer/onboarding` for five checks: create a team, invite staff, enable modules, set a geofence, and connect mobile later. The first four are done only when this company already has the matching rows. Mobile stays open. Paths for other screens are exported from `src/components/help/nav.ts`. This does not add a migration and does not move P2–P6 into the current window.

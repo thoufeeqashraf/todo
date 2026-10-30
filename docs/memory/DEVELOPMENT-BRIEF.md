@@ -170,6 +170,8 @@ Few tools cover all of this well for SMBs across industries: who is on shift, wh
 
 Payments: use the Transaction Junction API. Do not build a payment gateway. Still build the wallet ledger, webhooks, reconciliation, QR flows, limits, and admin tools. That work is P4.
 
+Customer web routes for the catalogue modules `projects`, `clients`, and `notifications` are `/customer/projects`, `/customer/clients`, and `/customer/notifications`. Each one stays closed unless that module is on. The projects screen is a board and a list of tasks, with departments as project names. There is no projects table and no clients table. Client accounts are stored on the clients module settings until a table exists. The notifications screen lists in-app rows for the signed-in user. Email and push are not connected.
+
 ## 7. Delivery phases
 
 | Phase | Included |
@@ -344,3 +346,14 @@ The web app has a Playwright smoke (landing, signup, customer login, unauthentic
 Web UI component library is already decided outside this brief: shadcn, until replaced. That decision does not choose the mobile toolkit.
 
 Schema notes for this repo live in `docs/DATABASE.md`. The app uses the Supabase service role. Row level security denies the anon key. Sample rows, when seeded, belong to company slug `demo-kitchen` and are not written onto any other company.
+30 Oct 2026 implementation note: the future mobile client calls `/api/v1` (`docs/API-V1.md`). The server checks the bearer token, the company, the role, and whether the module is on. Payments, map tiles, CCTV streams, and email remain stubs and are not called.
+Customer analytics at `/customer/analytics` is a reports-module view of existing task, attendance, and incident rows. It does not add tables. Incident severity is classified from `incidents.status` because that table has no severity column.
+## 14. Help center and setup checklist (repo, 30 Oct 2026)
+
+This note records what the web app serves. It does not change phase scope, quotes, or the open decisions above.
+
+- `/help` is public. Articles and categories live in `src/content/help.ts`. Each article is `/help/[slug]`. Search filters that file in the browser.
+- `/customer/onboarding` is the signed-in setup checklist: create a team (`teams`), invite staff (`invitations` or a second user), enable modules (`company_modules.is_enabled`), set a geofence (active `geofences`), connect mobile later. Mobile stays open. No phone is stored.
+- `/customer/module/onboarding` remains the older company, industry, region, module, people, and first-task list. It is a different screen.
+- Other UI should import `/help` and `/customer/onboarding` from `src/components/help/nav.ts`.
+- No new table or migration.
