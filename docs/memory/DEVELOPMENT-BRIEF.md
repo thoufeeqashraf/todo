@@ -338,3 +338,5 @@ GPS tracking, staff scoring, and wallet money movement need POPIA, labour, and p
 - Hosting region: South Africa, EU, or multi-region.
 
 Web UI component library is already decided outside this brief: shadcn, until replaced. That decision does not choose the mobile toolkit.
+
+30 Oct 2026 implementation note: the future mobile client calls `/api/v1` (`docs/API-V1.md`). The server checks the bearer token, the company, the role, and whether the module is on. Payments, map tiles, CCTV streams, and email remain stubs and are not called.

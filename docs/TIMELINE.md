@@ -9,7 +9,7 @@ This window sequences **P1**. Quoted P1 is 3,200 hours. One full-time developer 
 
 Counts on 30 Oct 2026, this window only: **7 done**, **1 in progress**, **11 pending**.
 
-Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window.
+Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. `/api/v1` now has task CRUD, staff update, schedule update, attendance list and clock-out, paginated lists, a consistent error object, in-memory rate limits, and security headers. The contract is `docs/API-V1.md`. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window.
 
 ## Done
 
