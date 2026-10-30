@@ -50,7 +50,14 @@ export default async function CustomerOnboardingPage() {
   const session = await getCustomerSession();
   if (!session) redirect('/customer-login');
 
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured()) {
+    return (
+      <ConfigNotice
+        title="Database is not configured"
+        body="Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY, then apply migrations 001–003."
+      />
+    );
+  }
 
   let counts: OnboardingCounts | null = null;
   try {

@@ -57,6 +57,7 @@ export async function loadModule(slug: string) {
     const data = await readModule(slug, current);
     return { ok: true as const, blurb: blurbs[slug] ?? 'Unknown area.', data };
   } catch (error) {
+    if (error instanceof PlatformError && error.status === 401) redirect('/customer-login');
     return pack(error);
   }
 }
@@ -76,6 +77,7 @@ async function readModule(slug: string, current: TenantActor) {
     case 'incidents':
       return { incidents: await tenant.listIncidents(current) };
     case 'attendance':
+      await tenant.assertModule(current, 'geofence_attendance');
       return {
         note: 'Save a geofence, then clock in with device coordinates. Travel days are stored only when a manager grants one.',
       };

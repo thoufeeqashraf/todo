@@ -306,7 +306,14 @@ export async function loginWithPassword(email: string, password: string, company
   for (const user of rows) {
     const company = companyRecord(user.companies);
     if (!company?.slug || !company.name) continue;
-    const valid = await verifyPassword(password, String(user.password_hash));
+    const hash = typeof user.password_hash === 'string' ? user.password_hash : '';
+    if (!hash.startsWith('$2')) continue;
+    let valid = false;
+    try {
+      valid = await verifyPassword(password, hash);
+    } catch {
+      continue;
+    }
     if (!valid) continue;
     matches.push({
       id: String(user.id),
@@ -395,7 +402,7 @@ export async function createTask(
     .select('id, title, status, priority, assigned_to_id')
     .single();
   fail(error, 'Could not create the task.');
-  const task = data as Row;
+  const task = requireRow(data, 'Could not create the task.');
   await writeAudit(actor, 'task.created', 'task', String(task.id), { title: input.title });
   if (input.assignedToId) {
     await notify(actor.companyId, input.assignedToId, 'New task', input.title, '/customer/tasks');
@@ -517,7 +524,8 @@ export async function acceptInvitation(input: {
   if (!invite || invite.status !== 'pending') {
     throw new PlatformError('not_found', 'This invitation is not available.', 404);
   }
-  if (new Date(String(invite.expires_at)).getTime() < Date.now()) {
+  const expiresMs = new Date(typeof invite.expires_at === 'string' || typeof invite.expires_at === 'number' ? invite.expires_at : '').getTime();
+  if (!Number.isFinite(expiresMs) || expiresMs < Date.now()) {
     throw new PlatformError('expired', 'This invitation has expired.', 410);
   }
   if (!isUserRole(String(invite.role))) {
@@ -538,12 +546,13 @@ export async function acceptInvitation(input: {
     .select('id, email, role, company_id')
     .single();
   fail(created.error, 'Could not create the invited user.');
-  const user = created.data as Row;
-  await supabaseAdmin
+  const user = requireRow(created.data, 'Could not create the invited user.');
+  const accepted = await supabaseAdmin
     .from('invitations')
     .update({ status: 'accepted', accepted_at: new Date().toISOString() })
     .eq('id', invite.id)
     .eq('company_id', invite.company_id);
+  fail(accepted.error, 'Could not accept the invitation.');
   await writeAudit(
     { userId: String(user.id), companyId: String(user.company_id) },
     'invitation.accepted',
@@ -1064,7 +1073,7 @@ export async function onboarding(actor: TenantActor) {
   ]);
   const company = await supabaseAdmin.from('companies').select('industry_id, region, name').eq('id', actor.companyId).single();
   fail(company.error, 'Could not read onboarding state.');
-  const row = company.data as Row;
+  const row = requireRow(company.data, 'Could not read onboarding state.');
   return {
     steps: [
       { id: 'company', label: 'Company created', done: true },
@@ -1110,6 +1119,13 @@ export async function updateCompanySettings(actor: TenantActor, input: { name?: 
   fail(error, 'Could not update settings.');
   await writeAudit(actor, 'company.updated', 'company', actor.companyId, patch);
   return data;
+}
+
+function requireRow(data: unknown, message: string): Row {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new PlatformError('database', message, 500);
+  }
+  return data as Row;
 }
 
 function idOrNull(value: unknown): string | null {
@@ -1189,11 +1205,12 @@ export async function updateTask(
     .select('id, title, description, status, priority, due_date, assigned_to_id')
     .single();
   fail(error, 'Could not update the task.');
+  const task = requireRow(data, 'Could not update the task.');
   await writeAudit(actor, 'task.updated', 'task', id, patch);
   if (input.assignedToId) {
     await notify(actor.companyId, input.assignedToId, 'Task updated', input.title ?? 'A task was assigned to you', '/customer/tasks');
   }
-  return data;
+  return task;
 }
 
 export async function deleteTask(actor: TenantActor, id: string) {
