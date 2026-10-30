@@ -4,6 +4,7 @@ Locked choices. Newest first. Change a row only when the user replaces the decis
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 30 Oct 2026 | Web smoke tests use Playwright against `next start` after `npm run build`. They cover the landing page, signup, customer login, and the unauthenticated `/customer` redirect. They do not need Supabase keys. `@playwright/test` is a devDependency. `npm run build` does not run Playwright. GitHub Actions runs lint, typecheck, unit tests, the production build, and that smoke. | Active |
 | 30 Oct 2026 | Tenant tables and the public catalogues use row level security. Policies deny `anon` and `authenticated`. The service role stays the only app data path and is not forced through those policies. Demo seed rows belong only to company slug `demo-kitchen`. If that slug is already a non-demo company, the seed stops. | Active |
 | 30 Oct 2026 | Product, architecture, design system, runbook, and roadmap live in `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN-SYSTEM.md`, `docs/RUNBOOK.md`, and `docs/ROADMAP.md`. They describe the repo. `DEVELOPMENT-BRIEF.md` stays canonical if they disagree. | Active |
 | 30 Oct 2026 | The development operator cookie is HMAC-signed with `SESSION_SECRET`. The name is documented in `.env.example`. The value is set on Vercel and is never committed. Customer bearer tokens do not use it. A missing secret returns a short form error. | Active |

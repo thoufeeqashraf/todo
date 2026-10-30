@@ -43,6 +43,10 @@ Quoted P1 is 3,200 hours. One full-time developer for six months is about 960 ho
 
 Sell P1+P2 first ($210,000 face / $157,500 cash to the developer). Full vision face is $580,000–$620,000. Face rate is $35/hour. If price is pushed, cut scope, not the rate. Deal context recorded in the brief: 75% cash, 25% ownership, no unpaid AMC after settlement.
 
+## Verification
+
+GitHub Actions runs lint, typecheck, the unit tests, `npm run build`, and a Playwright smoke against that production server. The smoke checks the landing page, signup, customer login, and that an unauthenticated visit to `/customer` goes to customer login. It does not need Supabase keys. Playwright is a devDependency and does not run during `npm run build`.
+
 ## Still open
 
 See section 13 of `DEVELOPMENT-BRIEF.md` and the open list in `DECISIONS.md`. The web stack is Next.js. The mobile toolkit is still open. Each company chooses `za`, `eu`, or `multi` as its data region.
