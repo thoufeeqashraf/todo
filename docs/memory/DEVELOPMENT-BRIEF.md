@@ -2,6 +2,8 @@
 
 Development brief and commercial reference, compiled October 2026 from product planning conversations. This file is the canonical upload. If a summary in `BRIEF.md` disagrees with this file, this file wins until the user changes it. Repo-shaped companions (`docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN-SYSTEM.md`, `docs/RUNBOOK.md`, `docs/ROADMAP.md`) describe what the code contains. If they disagree with this file, this file wins.
 
+30 Oct 2026 note: system routes (not-found, error, loading, icons, manifest, robots, sitemap, Open Graph) use the name ToDo App and a checklist logomark. Constants live in `src/lib/seo.ts`. This does not set per-company logos or colours, and it does not close the open product-name item for the rest of the console.
+
 Commercial model: SaaS, monthly or yearly subscriptions.
 
 Developer deal context: 75% cash of the quoted amount, 25% ownership, no unpaid AMC after cash settlement. Price accordingly.
@@ -89,7 +91,7 @@ Owners, GMs, area and regional managers. Store, site, and branch managers. Shift
 
 The current `/login` route is only the temporary operator gate. It is not the customer entrance.
 
-Inside a customer company, admins also have `/customer/audit`, `/customer/team`, and `/customer/billing`. Billing on that screen is a placeholder and is not a payment provider.
+Inside a customer company, admins also have `/customer/audit`, `/customer/team`, and `/customer/billing`. Billing on that screen lists the company subscription and invoices and starts Stripe Checkout for admins. It is not the wallet.
 
 ### 4.5 Three primary user types on the customer side
 

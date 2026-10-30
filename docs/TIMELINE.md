@@ -9,6 +9,7 @@ This window sequences **P1**. Quoted P1 is 3,200 hours. One full-time developer 
 
 Counts on 30 Oct 2026, this window only: **8 done**, **1 in progress**, **11 pending**.
 
+Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. Platform system pages (not-found, error, loading, icons, robots, sitemap, manifest, Open Graph) use the ToDo App mark. Per-company logos and colours are still not built.
 Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN-SYSTEM.md`, `docs/RUNBOOK.md`, and `docs/ROADMAP.md` describe that repo. They do not change the checkboxes below. `004_indexes_and_rls.sql` denies the anon and authenticated roles, indexes company and foreign-key columns, and maintains `updated_at`. `supabase/seed/demo.sql` loads sample staff, tasks, schedules, and incidents on company slug `demo-kitchen` only. See `docs/DATABASE.md`. April security acceptance is still open. Company admins also have `/customer/audit`, `/customer/team`, and `/customer/billing`. Billing there is labelled as not connected to a payment provider. The shell sidebar links those routes. The route list is also exported from `src/components/admin/nav.ts`.
 Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. The customer staff, tasks, modules, scheduling, reports, settings, and module screens use the shadcn console (tables, filters, sheets, a weekly roster, and task charts). That pass did not change landing, auth, the app shell, or the `/customer` dashboard, and it did not finish proof media or ten-level visibility.
 
@@ -30,6 +31,8 @@ Repo status the same day, outside these checkboxes: customer web and `/api/v1` i
 
 Company subscription billing is in the repo the same day: migration `005_billing.sql`, INR plans Starter / Growth / Scale, `POST /api/billing/checkout` (company admin), and `POST /api/billing/webhook`. Stripe keys are optional at build time. Checkout returns 503 until they are set. The customer billing screen is unchanged. Wallet money movement is still the Transaction Junction stub.
 
+The customer billing screen at `/customer/billing` now reads `subscriptions` and `invoices` for the signed-in company. Company admins can Subscribe or Upgrade. Those buttons post to `POST /api/billing/checkout` and open the Stripe URL. If that route returns 503 `Billing not configured`, the page toasts and shows “Billing is not set up yet”. Missing billing tables show an empty state and do not crash the page. Usage counts are still not a bill. The wallet is unchanged.
+
 ## Done
 
 - [x] Project memory, Cursor rules, and shadcn as the web UI library
@@ -45,7 +48,7 @@ Company subscription billing is in the repo the same day: migration `005_billing
 
 - [x] Multi-tenant auth and company signup (web customer login, first admin, bearer-token `/api/v1`; Supabase migrations required; `/login` stays the dev operator gate)
 - [x] Industry selection and per-company module toggles, including industry defaults
-- [ ] Company branding. The console type and sidebar shell are in progress; per-company logos and colours are not. The public landing page and auth entrances now use the ToDo App name and logomark.
+- [ ] Company branding. The console type and sidebar shell are in progress; per-company logos and colours are not. The public landing page and auth entrances now use the ToDo App name and logomark. Platform 404, error, loading, and generated icons use the ToDo App mark.
 - [x] Scaffold the web app with Next.js and shadcn (`npm run dev`)
 - [x] CI smoke for the web shell: lint, typecheck, unit tests, production build, and Playwright (landing, signup, customer login, unauthenticated `/customer`) with no Supabase keys
 - [x] Public help center at `/help` and customer setup checklist at `/customer/onboarding` (static articles, checklist from existing rows, no migration)

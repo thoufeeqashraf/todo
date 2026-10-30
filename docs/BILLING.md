@@ -2,7 +2,7 @@
 
 Companies pay for this product with a Stripe subscription. The plans are Starter, Growth, and Scale, priced in INR per month. This is separate from the wallet. The wallet still uses the Transaction Junction API and does not move money through Stripe.
 
-The customer billing screen is owned elsewhere. This document covers the database, the API, and the Stripe setup.
+Company admins manage that subscription at `/customer/billing`. This document covers the screen, the database, the API, and the Stripe setup.
 
 ## Prices
 
@@ -97,3 +97,15 @@ Admins only. Anyone else gets 401 or 403.
 ```
 
 `plan` is `starter`, `growth`, or `scale`. The response is `{ "url": "https://checkout.stripe.com/..." }`. Stripe sends the browser back to `/customer/billing` on success or cancel.
+
+## Customer billing screen
+
+`/customer/billing` is limited to company admins. Anyone else sees the admin gate and cannot start checkout.
+
+The screen reads `subscriptions` and `invoices` for the signed-in company. It shows the subscription status and the invoice rows. If those tables are not in the database yet, or a read fails, the page shows an empty state. It does not crash.
+
+The plan cards are Starter, Growth, and Scale from `src/lib/billing/plans.ts`. Subscribe and Upgrade post the plan code to `POST /api/billing/checkout`. The clicked button shows a loading state. A response that includes a Stripe checkout `url` sends the browser there.
+
+When that route returns HTTP 503 and `{ "error": "Billing not configured" }`, the page shows a toast and a “Billing is not set up yet” state. No card is charged.
+
+Usage counts on the same page are company totals. They are not a Stripe meter, and they are not the wallet. The wallet still uses the Transaction Junction API.
