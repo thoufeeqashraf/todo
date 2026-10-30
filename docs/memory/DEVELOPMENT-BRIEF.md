@@ -89,6 +89,8 @@ Owners, GMs, area and regional managers. Store, site, and branch managers. Shift
 
 The current `/login` route is only the temporary operator gate. It is not the customer entrance.
 
+Inside a customer company, admins also have `/customer/audit`, `/customer/team`, and `/customer/billing`. Billing on that screen is a placeholder and is not a payment provider.
+
 ### 4.5 Three primary user types on the customer side
 
 1. Doers complete personal and assigned tasks.

@@ -4,6 +4,7 @@ Locked choices. Newest first. Change a row only when the user replaces the decis
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 30 Oct 2026 | Company billing at `/customer/billing` is a placeholder. It does not connect to a payment provider, Transaction Junction, or card checkout. Usage figures are counts from the company, not a bill. | Active |
 | 30 Oct 2026 | The development operator cookie is HMAC-signed with `SESSION_SECRET`. The name is documented in `.env.example`. The value is set on Vercel and is never committed. Customer bearer tokens do not use it. A missing secret returns a short form error. | Active |
 | 30 Oct 2026 | Company hosting region is a per-company setting: `za` (South Africa), `eu`, or `multi`. It is chosen at signup and can be changed in company settings. A single deployment region is not locked. | Active |
 | 30 Oct 2026 | The web app is the control plane and single source of truth for a future mobile client. Business rules, permissions, and module enablement run only on the server. Mobile calls `/api/v1` with `Authorization: Bearer`. The browser stores that same token in an httpOnly cookie and does not enforce a second set of rules. `GET /api/v1/bootstrap` returns the tenant's modules, role, and provider status. Shared types live in `src/types` and `src/lib/platform-rules.ts`. The route list is `docs/API-V1.md`. No mobile app is scaffolded. | Active |
