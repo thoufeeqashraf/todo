@@ -7,6 +7,7 @@ import { PlatformError } from '@/lib/platform-error';
 import { API_VERSION, API_V1_CATALOG, gateApiRoute, isUserRole, matchApiRoute, transactionJunctionTopUp } from '@/lib/platform-rules';
 import { clientAddress, consumeRateLimit, rateLimitPolicy, type RateLimitDecision } from '@/lib/rate-limit';
 import { enforceAuthInvite, enforceAuthLogin, isIsoDateTime, readJson, RequestGuardError } from '@/lib/request-guards';
+import { dispatchOwnerActor } from '@/lib/owner/actor-dispatch';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import * as tenant from '@/lib/services/tenant';
 
@@ -122,7 +123,23 @@ async function publicRoute(request: NextRequest, path: string[], method: string)
   return NextResponse.json({ error: { code: 'not_found', message: 'Unknown API route.' } }, { status: 404 });
 }
 
+async function ownerBearer(request: NextRequest, path: string[], method: string, actor: tenant.TenantActor) {
+  const body = method === 'GET' || method === 'DELETE' ? undefined : await readBody(request);
+  const result = await dispatchOwnerActor({
+    userId: actor.userId,
+    email: actor.email,
+    role: actor.role,
+    companyId: actor.companyId,
+    method,
+    parts: path,
+    searchParams: request.nextUrl.searchParams,
+    body,
+  });
+  return NextResponse.json(result.body, { status: result.status });
+}
+
 async function bearerRoute(request: NextRequest, path: string[], method: string, actor: tenant.TenantActor, token: string) {
+  if (path[0] === 'owner') return ownerBearer(request, path, method, actor);
   const key = `${method} ${path.join('/')}`;
   if (key === 'GET auth/me') {
     return NextResponse.json({
@@ -360,6 +377,7 @@ export async function dispatch(request: NextRequest, path: string[], method: str
             const token = bearerToken(request);
             const actor = await tenant.actorFromToken(token);
             if (!route) {
+              if (path[0] === 'owner') return ownerBearer(request, path, method, actor);
               return NextResponse.json({ error: { code: 'not_found', message: 'Unknown API route.' } }, { status: 404 });
             }
             const enabled = route.module ? await tenant.enabledModuleNames(actor.companyId) : [];

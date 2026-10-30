@@ -1,10 +1,32 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { ownerGateDocument, ownerPageStatus } from "@/lib/owner/page-access";
+import { resolveOwnerPageClaim } from "@/lib/owner/page-claim";
 import { CUSTOMER_SESSION_COOKIE, customerCookieAllows } from "@/lib/request-guards";
 import { ADMIN_SESSION_COOKIE, readSessionToken } from "@/lib/session-token";
 
+function ownerGateResponse(status: 401 | 403) {
+  return new NextResponse(ownerGateDocument(status), {
+    status,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "x-robots-tag": "noindex",
+    },
+  });
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isOwnerPage = pathname === "/owner" || pathname.startsWith("/owner/");
+  if (isOwnerPage) {
+    const status = await ownerPageStatus(
+      request.cookies.get(CUSTOMER_SESSION_COOKIE)?.value,
+      resolveOwnerPageClaim,
+    );
+    if (status !== 200) return ownerGateResponse(status);
+  }
+
   const session = await readSessionToken(
     request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
   );

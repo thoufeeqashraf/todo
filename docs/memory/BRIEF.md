@@ -62,6 +62,7 @@ Repo-shaped docs, written from the code on 30 Oct 2026: `docs/PRODUCT.md`, `docs
 Company admins can open `/customer/audit`, `/customer/team`, and `/customer/billing`. Audit and team read that company’s rows. Invites post to `POST /api/v1/invitations`. Billing shows the company subscription and invoices. Company admins can Subscribe or Upgrade through Stripe Checkout. If Stripe is not configured, the page says billing is not set up yet and does not charge a card. The wallet is unchanged. The route list for the shell is `src/components/admin/nav.ts`.
 
 Company admins can open `/customer/audit`, `/customer/team`, and `/customer/billing`. Audit and team read that company’s rows. Invites post to `POST /api/v1/invitations`. Billing shows plan, usage, and invoice placeholders and does not charge a card. The route list for the shell is `src/components/admin/nav.ts`.
+
 ## Customer console
 
 `/customer/projects`, `/customer/clients`, and `/customer/notifications` follow the projects, clients, and notifications modules. Projects is a board and list of tasks. Clients has no table yet. Notifications is the signed-in user’s in-app inbox. Email and push are not connected.
@@ -75,3 +76,9 @@ Public pages currently say ToDo App. The development brief title is unchanged un
 ## Help and setup (30 Oct 2026)
 
 `/help` is a public help center. Articles are static data in `src/content/help.ts`, with category filters and a page per slug. Signed-in customers open `/customer/onboarding` for five checks: create a team, invite staff, enable modules, set a geofence, and connect mobile later. The first four are done only when this company already has the matching rows. Mobile stays open. Paths for other screens are exported from `src/components/help/nav.ts`. This does not add a migration and does not move P2–P6 into the current window.
+
+## Platform owner (30 Oct 2026)
+
+`/owner` is the vendor console. It is not the company admin view. The signed-in user must be listed in `PLATFORM_OWNER_EMAILS` (default `thoufeeq2009@gmail.com`) or be the admin of company slug `todo-app-hq`. After customer login, that account sees a Platform Owner link. Details are in `docs/OWNER-CONSOLE.md`. This does not add a migration.
+
+Unsigned `/owner` requests, and signed-in company admins, receive HTTP 401 or 403 from `src/proxy.ts` before the page streams.

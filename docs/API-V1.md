@@ -142,6 +142,21 @@ Bearer, company-scoped:
 | GET | `/api/v1/settings` | — | any | Company name, slug, region, settings. |
 | PATCH | `/api/v1/settings` | — | admin | `{ name?, region? }`. Region is `za`, `eu`, or `multi`. |
 
+## Platform owner
+
+`/api/v1/owner/*` is the vendor control plane for a future mobile client. It uses the same bearer token as the rest of v1, then checks the platform-owner rule on the server. A company admin receives HTTP 403 `forbidden`. A missing token is HTTP 401. The routes, the cookie API at `/api/owner`, and the suspension flag are described in `docs/OWNER-CONSOLE.md`. These routes are not gated by a company module.
+
+| Method | Path |
+| --- | --- |
+| GET | `/api/v1/owner/overview` |
+| GET, POST | `/api/v1/owner/tenants` |
+| GET, PATCH | `/api/v1/owner/tenants/:id` |
+| GET | `/api/v1/owner/tenants/:id/audit` |
+| PATCH | `/api/v1/owner/tenants/:id/modules` |
+| POST | `/api/v1/owner/tenants/:id/invitations` |
+| GET | `/api/v1/owner/industries` |
+| GET | `/api/v1/owner/modules` |
+
 ## Providers
 
 Payments name `transaction_junction`, maps, CCTV, and email are `stub` or `not_connected`. None of them are called. Do not treat a stub response as a completed payment, stream, or email.

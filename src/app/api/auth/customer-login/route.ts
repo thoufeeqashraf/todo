@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCustomerSession, setCustomerToken } from '@/lib/customer-session';
+import { sessionIsPlatformOwner } from '@/lib/owner/access';
 import { jsonFromError } from '@/lib/json-error';
 import { enforceAuthLogin, readJson } from '@/lib/request-guards';
 import { loginWithPassword } from '@/lib/services/tenant';
@@ -19,8 +20,10 @@ export async function POST(request: NextRequest) {
     const issued = await loginWithPassword(data.email, data.password, data.companySlug);
     await setCustomerToken(issued.token);
     const session = await getCustomerSession();
+    const platformOwner = session ? await sessionIsPlatformOwner(session) : false;
     return NextResponse.json({
       success: true,
+      platformOwner,
       user: session
         ? {
             id: session.user.id,

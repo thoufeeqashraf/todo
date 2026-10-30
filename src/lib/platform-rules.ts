@@ -356,6 +356,16 @@ export const API_V1_CATALOG = [
   { method: 'PATCH', path: '/api/v1/incidents/:id', auth: 'bearer', module: 'incidents', minRole: 'manager' },
   { method: 'GET', path: '/api/v1/wallet/entries', auth: 'bearer', module: 'wallet', minRole: 'user' },
   { method: 'POST', path: '/api/v1/notifications/read-all', auth: 'bearer', module: 'notifications', minRole: 'user' },
+  { method: 'GET', path: '/api/v1/owner/overview', auth: 'bearer', module: null, minRole: 'user' },
+  { method: 'GET', path: '/api/v1/owner/tenants', auth: 'bearer', module: null, minRole: 'user' },
+  { method: 'POST', path: '/api/v1/owner/tenants', auth: 'bearer', module: null, minRole: 'user' },
+  { method: 'GET', path: '/api/v1/owner/tenants/:id', auth: 'bearer', module: null, minRole: 'user' },
+  { method: 'PATCH', path: '/api/v1/owner/tenants/:id', auth: 'bearer', module: null, minRole: 'user' },
+  { method: 'GET', path: '/api/v1/owner/tenants/:id/audit', auth: 'bearer', module: null, minRole: 'user' },
+  { method: 'PATCH', path: '/api/v1/owner/tenants/:id/modules', auth: 'bearer', module: null, minRole: 'user' },
+  { method: 'POST', path: '/api/v1/owner/tenants/:id/invitations', auth: 'bearer', module: null, minRole: 'user' },
+  { method: 'GET', path: '/api/v1/owner/industries', auth: 'bearer', module: null, minRole: 'user' },
+  { method: 'GET', path: '/api/v1/owner/modules', auth: 'bearer', module: null, minRole: 'user' },
 ] as const;
 
 /** Routes whose catalogue row has no minRole still require this floor. */

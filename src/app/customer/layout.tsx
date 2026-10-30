@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { ConfigNotice } from '@/components/config-notice';
 import { CustomerShell } from '@/components/customer-shell';
 import { getCustomerSession } from '@/lib/customer-session';
+import { sessionIsPlatformOwner } from '@/lib/owner/access';
 import { isSupabaseConfigured, supabaseAdmin } from '@/lib/supabase';
 
 export const instant = false;
@@ -14,6 +15,13 @@ function nameFrom(session: { user: { first_name?: string | null; last_name?: str
 export default async function CustomerLayout({ children }: { children: ReactNode }) {
   const session = await getCustomerSession();
   if (!session) return children;
+
+  let platformOwner = false;
+  try {
+    platformOwner = await sessionIsPlatformOwner(session);
+  } catch {
+    platformOwner = false;
+  }
 
   let unread = 0;
   if (isSupabaseConfigured()) {
@@ -32,7 +40,7 @@ export default async function CustomerLayout({ children }: { children: ReactNode
 
   if (!isSupabaseConfigured()) {
     return (
-      <CustomerShell companyName="Workspace" industry="" email={session.user.email} role={session.user.role} name={nameFrom(session)} unread={0}>
+      <CustomerShell companyName="Workspace" industry="" email={session.user.email} role={session.user.role} name={nameFrom(session)} unread={0} platformOwner={platformOwner}>
         <ConfigNotice
           title="Database is not configured"
           body="Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY, then apply migrations 001–003."
@@ -69,6 +77,7 @@ export default async function CustomerLayout({ children }: { children: ReactNode
       role={session.user.role}
       name={name}
       unread={unread}
+      platformOwner={platformOwner}
     >
       {children}
     </CustomerShell>
