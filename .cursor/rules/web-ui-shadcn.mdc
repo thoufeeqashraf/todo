@@ -1,0 +1,20 @@
+---
+description: Web UI is shadcn until a later decision replaces it
+globs: "**/*.{tsx,jsx}"
+alwaysApply: false
+---
+
+# Web UI
+
+Build web interface with shadcn/ui and the Tailwind setup shadcn expects. Do not add Material UI, Chakra, Mantine, or a second headless kit.
+
+```tsx
+// Prefer a shadcn component
+import { Button } from "@/components/ui/button";
+
+<Button type="submit">Save duty</Button>
+```
+
+Compose screens from shadcn primitives. Pull in a new shadcn component when the screen needs it, instead of hand-rolling a parallel widget.
+
+This rule is web only. It does not choose the iOS or Android toolkit.

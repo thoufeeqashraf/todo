@@ -1,0 +1,18 @@
+---
+description: Phase scope, clients, and build boundaries for the ops platform
+alwaysApply: true
+---
+
+# Product direction
+
+Multi-tenant business operations SaaS: tasks, proof, hierarchy, and industry packs, on web, iOS, and Android. One web platform, two logins. Admin and staff use the operator login to control the mobile app and manage the platform. Customers use a separate login on the same web to run their business. Mobile is the app those customers use. Detail is in `docs/memory/DEVELOPMENT-BRIEF.md`.
+
+The operator login at `/login` currently accepts any username and password. The form chooses Admin or Staff and opens that role’s `/dashboard`. That gate is `src/lib/dev-admin-login.ts`. It runs only outside production and must be deleted before go-live. The companies on the dashboard are a development preview.
+
+Current window (through 30 Apr 2027) builds P1 only, in this order: tenant and industry onboarding, hierarchy and visibility, tasks with media proof, doer/assigner/overseer dashboards, notifications. The April P2 slice (escalation and black marks) starts only after P1 acceptance.
+
+Leave these unimplemented until the timeline says they are in scope: staff health scoring, incidents, Find My Staff, geofence attendance, AI roster, wallet, mini-apps, POS, CCTV.
+
+Web stack is Next.js App Router, TypeScript, Tailwind, and shadcn. Run the web console with `npm run dev`. Do not scaffold iOS or Android until the mobile toolkit is an active decision. Do not build a payment gateway; Transaction Junction is the future wallet API.
+
+Quoted hours are not the six-month capacity. Say so when sequencing work. Face rate is $35/hour; cut scope rather than the rate.

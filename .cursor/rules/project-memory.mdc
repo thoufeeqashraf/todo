@@ -1,0 +1,26 @@
+---
+description: Read and update the project memory and six-month timeline
+alwaysApply: true
+---
+
+# Project memory
+
+Before planning, quoting, or changing product behavior, read:
+
+- `docs/memory/DEVELOPMENT-BRIEF.md` — canonical product and commercial reference
+- `docs/memory/BRIEF.md` — working summary
+- `docs/memory/DECISIONS.md` — locked choices and open kickoff items
+- `docs/memory/LOG.md` — work already done
+- `docs/TIMELINE.md` — done, in progress, and pending through 30 Apr 2027
+
+When a new fact, decision, or finished piece of work appears, update the matching file in the same change. Append `LOG.md`. Do not ask the user to repeat something already written there.
+
+A newer explicit instruction from the user wins. Then update the files so they match.
+
+Keep `.cursor/rules/` aligned when stack, structure, or phase scope changes. Update the six-month canvas when `docs/TIMELINE.md` status changes.
+
+```markdown
+<!-- docs/memory/LOG.md -->
+## 12 Nov 2026
+- Locked Next.js and Expo in DECISIONS and moved December scaffold to in progress.
+```
