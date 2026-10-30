@@ -1,44 +1,35 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import {
-  Bell,
-  CalendarDays,
-  ClipboardList,
-  HeartPulse,
-  MapPin,
-  Receipt,
-  Settings,
-  Shield,
-  Sparkles,
-  Store,
-  Users,
-  Video,
-  Wallet,
-} from 'lucide-react';
 
 import { ConfigNotice } from '@/components/config-notice';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CustomerHome, type ActivityItem, type DueTask, type SparkPoint, type StatusPoint, type TeamMember } from '@/components/dashboard/customer-home';
 import { getCustomerSession } from '@/lib/customer-session';
 import { isSupabaseConfigured, supabaseAdmin } from '@/lib/supabase';
 
 export const instant = false;
 
-const destinations = [
-  { href: '/customer/tasks', title: 'Tasks', body: 'Assign work and track deadlines.', icon: ClipboardList },
-  { href: '/customer/staff', title: 'Staff', body: 'People, departments, and invite links.', icon: Users },
-  { href: '/customer/module/scheduling', title: 'Scheduling', body: 'Shifts. AI roster fill is not built.', icon: CalendarDays },
-  { href: '/customer/module/incidents', title: 'Incidents', body: 'Tickets inside this company.', icon: Shield },
-  { href: '/customer/module/attendance', title: 'Attendance', body: 'Geofence clock-in and travel days.', icon: MapPin },
-  { href: '/customer/module/reports', title: 'Reports', body: 'Task counts for this company.', icon: Receipt },
-  { href: '/customer/module/wallet', title: 'Wallet', body: 'Ledger only. Top-up does not move money.', icon: Wallet },
-  { href: '/customer/module/pos', title: 'POS', body: 'Orders stay unpaid until a provider exists.', icon: Store },
-  { href: '/customer/module/health', title: 'Staff health', body: 'Provisional rules score for managers.', icon: HeartPulse },
-  { href: '/customer/module/find', title: 'Find My Staff', body: 'Consented coordinates. No map tiles.', icon: MapPin },
-  { href: '/customer/module/cctv', title: 'CCTV', body: 'Camera names. No live stream.', icon: Video },
-  { href: '/customer/module/notifications', title: 'Notifications', body: 'In-app notices. Email is not sent.', icon: Bell },
-  { href: '/customer/module/mini-apps', title: 'Mini-apps', body: 'Marketplace shell. No partners connected.', icon: Sparkles },
-];
+type TaskRow = { id: string; title: string; status: string; priority: string; due_date: string | null; created_at: string };
+type UserRow = { id: string; first_name: string | null; last_name: string | null; role: string };
+type AuditRow = { id: string; action: string; created_at: string };
+type NoteRow = { id: string; title: string; created_at: string };
+type LocationRow = { user_id: string; recorded_at: string };
+
+function dayKey(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function sparkline(dates: string[]): SparkPoint[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(today);
+    day.setDate(today.getDate() - (6 - index));
+    const key = dayKey(day);
+    return {
+      day: day.toLocaleDateString(undefined, { weekday: 'short' }),
+      count: dates.filter((value) => value.slice(0, 10) === key).length,
+    };
+  });
+}
 
 export default async function CustomerDashboardPage() {
   const session = await getCustomerSession();
@@ -53,25 +44,67 @@ export default async function CustomerDashboardPage() {
     );
   }
 
-  let company: unknown = null;
-  let enabledCount = 0;
+  const companyId = session.companyId;
+  const role = session.user.role;
+  const seeCompany = role === 'admin' || role === 'manager';
+
+  let companyName = 'Company';
+  let industry = '';
+  let region = 'za';
+  let modulesOn = 0;
+  let tasks: TaskRow[] = [];
+  let users: UserRow[] = [];
+  let activity: ActivityItem[] = [];
+  let locations: LocationRow[] = [];
   let unavailable = false;
+
   try {
-    const companyResult = await supabaseAdmin
-      .from('companies')
-      .select('name, region, industries(display_name)')
-      .eq('id', session.companyId)
-      .maybeSingle();
-    const moduleResult = await supabaseAdmin
-      .from('company_modules')
-      .select('id')
-      .eq('company_id', session.companyId)
-      .eq('is_enabled', true);
+    let taskQuery = supabaseAdmin
+      .from('tasks')
+      .select('id, title, status, priority, due_date, created_at')
+      .eq('company_id', companyId);
+    if (!seeCompany) {
+      taskQuery = taskQuery.or(`assigned_to_id.eq.${session.user.id},assigned_by_id.eq.${session.user.id}`);
+    }
+    const [companyResult, moduleResult, taskResult, userResult, activityResult, locationResult] = await Promise.all([
+      supabaseAdmin.from('companies').select('name, region, industries(display_name)').eq('id', companyId).maybeSingle(),
+      supabaseAdmin.from('company_modules').select('id').eq('company_id', companyId).eq('is_enabled', true),
+      taskQuery,
+      seeCompany
+        ? supabaseAdmin.from('users').select('id, first_name, last_name, role').eq('company_id', companyId).eq('is_active', true).order('created_at')
+        : Promise.resolve({ data: [], error: null }),
+      seeCompany
+        ? supabaseAdmin.from('audit_logs').select('id, action, created_at').eq('company_id', companyId).order('created_at', { ascending: false }).limit(6)
+        : supabaseAdmin.from('notifications').select('id, title, created_at').eq('company_id', companyId).eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(6),
+      seeCompany
+        ? supabaseAdmin.from('staff_locations').select('user_id, recorded_at').eq('company_id', companyId).order('recorded_at', { ascending: false }).limit(40)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
     if (companyResult.error || moduleResult.error) {
       unavailable = true;
     } else {
-      company = companyResult.data;
-      enabledCount = moduleResult.data?.length ?? 0;
+      const row = companyResult.data as { name?: string; region?: string; industries?: { display_name?: string } | { display_name?: string }[] | null } | null;
+      const industries = row?.industries;
+      companyName = row?.name || companyName;
+      region = row?.region || region;
+      industry = Array.isArray(industries) ? industries[0]?.display_name || '' : industries?.display_name || '';
+      modulesOn = moduleResult.data?.length ?? 0;
+      if (!taskResult.error) tasks = (taskResult.data ?? []) as TaskRow[];
+      if (!userResult.error) users = (userResult.data ?? []) as UserRow[];
+      if (!activityResult.error) {
+        activity = seeCompany
+          ? ((activityResult.data ?? []) as AuditRow[]).map((item) => ({
+              id: item.id,
+              title: item.action,
+              at: new Date(item.created_at).toLocaleString(),
+            }))
+          : ((activityResult.data ?? []) as NoteRow[]).map((item) => ({
+              id: item.id,
+              title: item.title,
+              at: new Date(item.created_at).toLocaleString(),
+            }));
+      }
+      if (!locationResult.error) locations = (locationResult.data ?? []) as LocationRow[];
     }
   } catch {
     unavailable = true;
@@ -86,72 +119,46 @@ export default async function CustomerDashboardPage() {
     );
   }
 
-  const row = company as { name?: string; region?: string; industries?: { display_name?: string } | { display_name?: string }[] | null } | null;
-  const industries = row?.industries;
-  const industry = Array.isArray(industries) ? industries[0]?.display_name : industries?.display_name;
-  const firstName = session.user.first_name || 'there';
+  const open = tasks.filter((task) => task.status !== 'completed');
+  const weekAhead = Date.now() + 7 * 24 * 60 * 60 * 1000;
+  const dueSoon = open.filter((task) => task.due_date && new Date(task.due_date).getTime() <= weekAhead).length;
+  const counts = new Map<string, number>();
+  for (const task of tasks) counts.set(task.status, (counts.get(task.status) ?? 0) + 1);
+  const statuses: StatusPoint[] = [...counts.entries()].map(([status, count]) => ({
+    status: status.replaceAll('_', ' '),
+    count,
+  }));
+  const due: DueTask[] = open
+    .filter((task) => task.due_date)
+    .sort((a, b) => new Date(a.due_date || 0).getTime() - new Date(b.due_date || 0).getTime())
+    .slice(0, 5)
+    .map((task) => ({ id: task.id, title: task.title, due: task.due_date, status: task.status, priority: task.priority }));
+  const seenCutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const seen = new Set(locations.filter((row) => new Date(row.recorded_at).getTime() >= seenCutoff).map((row) => row.user_id));
+  const team: TeamMember[] = users.slice(0, 8).map((user) => ({
+    id: user.id,
+    name: `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || 'Teammate',
+    role: user.role,
+    seen: seen.has(user.id),
+  }));
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">{industry || 'Company'}</p>
-          <h1>Hello, {firstName}</h1>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            {row?.name || 'Your company'} · region <span className="font-numeric">{(row?.region || 'za').toUpperCase()}</span>
-          </p>
-        </div>
-        <Badge variant="secondary" className="capitalize">{session.user.role}</Badge>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="bg-card/80 shadow-sm">
-          <CardHeader>
-            <CardDescription>Modules on</CardDescription>
-            <CardTitle className="font-numeric text-3xl">{enabledCount}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="bg-card/80 shadow-sm">
-          <CardHeader>
-            <CardDescription>Role</CardDescription>
-            <CardTitle className="capitalize">{session.user.role}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="bg-card/80 shadow-sm">
-          <CardHeader>
-            <CardDescription>Next setup</CardDescription>
-            <CardTitle>Onboarding</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Link href="/customer/module/onboarding" className="text-sm text-primary">Open checklist</Link>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {destinations.map((item) => (
-          <Link key={item.href} href={item.href} className="group">
-            <Card className="h-full bg-card/75 shadow-sm transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md">
-              <CardHeader>
-                <item.icon className="size-4 text-primary" />
-                <CardTitle>{item.title}</CardTitle>
-                <CardDescription>{item.body}</CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
-        ))}
-        {session.user.role === 'admin' && (
-          <Link href="/customer/modules" className="group">
-            <Card className="h-full bg-card/75 shadow-sm transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md">
-              <CardHeader>
-                <Settings className="size-4 text-primary" />
-                <CardTitle>Modules</CardTitle>
-                <CardDescription>Turn features on or off.</CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
-        )}
-      </div>
-    </div>
+    <CustomerHome
+      firstName={session.user.first_name || 'there'}
+      companyName={companyName}
+      industry={industry}
+      region={region}
+      role={role}
+      modulesOn={modulesOn}
+      openTasks={open.length}
+      dueSoon={dueSoon}
+      people={seeCompany ? users.length : null}
+      sparkline={sparkline(tasks.map((task) => task.created_at))}
+      statuses={statuses}
+      due={due}
+      activity={activity}
+      team={team}
+      showTeam={seeCompany}
+    />
   );
 }
