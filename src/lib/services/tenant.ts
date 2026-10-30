@@ -23,7 +23,20 @@ import {
   transactionJunctionTopUp,
   type UserRole,
 } from '@/lib/platform-rules';
+import { pageResult, type PageQuery, type PageResult } from '@/lib/pagination';
 import { isSupabaseConfigured, supabaseAdmin } from '@/lib/supabase';
+import {
+  assertModuleEnabled,
+  canReadIncident,
+  canReadSchedule,
+  canReadTask,
+  companyOrOwn,
+  scopedCompanyId,
+  staffEditDecision,
+  taskDeleteDecision,
+  taskUpdateDecision,
+  walletReadUserId,
+} from '@/lib/tenant-scope';
 
 export interface TenantActor {
   userId: string;
@@ -59,7 +72,7 @@ export function hashToken(token: string) {
   return createHash('sha256').update(token).digest('hex');
 }
 
-async function enabledModuleNames(companyId: string): Promise<Set<string>> {
+export async function enabledModuleNames(companyId: string): Promise<Set<string>> {
   const { data, error } = await supabaseAdmin
     .from('company_modules')
     .select('is_enabled, module_id')
@@ -76,11 +89,7 @@ async function enabledModuleNames(companyId: string): Promise<Set<string>> {
 export async function assertModule(actor: TenantActor, name: string) {
   requireConfigured();
   const enabled = await enabledModuleNames(actor.companyId);
-  if (!moduleEnabled(enabled, name)) {
-    throw new PlatformError('module_disabled', `The ${name} module is off for this company.`, 403, {
-      module: name,
-    });
-  }
+  assertModuleEnabled(enabled, name);
   return enabled;
 }
 
@@ -326,19 +335,32 @@ export async function loginWithPassword(email: string, password: string, company
   return session;
 }
 
-export async function listTasks(actor: TenantActor) {
-  await assertModule(actor, 'tasks');
+function taskQuery(actor: TenantActor, status?: string) {
+  const scope = companyOrOwn(actor, canSeeCompanyTasks(actor.role));
   let query = supabaseAdmin
     .from('tasks')
     .select('id, title, description, status, priority, due_date, assigned_to_id, assigned_by_id, created_at')
-    .eq('company_id', actor.companyId)
+    .eq('company_id', scope.companyId)
     .order('created_at', { ascending: false });
-  if (!canSeeCompanyTasks(actor.role)) {
-    query = query.or(`assigned_to_id.eq.${actor.userId},assigned_by_id.eq.${actor.userId}`);
+  if (scope.ownUserId) {
+    query = query.or(`assigned_to_id.eq.${scope.ownUserId},assigned_by_id.eq.${scope.ownUserId}`);
   }
-  const { data, error } = await query;
+  if (status) query = query.eq('status', status);
+  return query;
+}
+
+export async function listTasks(actor: TenantActor) {
+  await assertModule(actor, 'tasks');
+  const { data, error } = await taskQuery(actor);
   fail(error, 'Could not list tasks.');
   return data ?? [];
+}
+
+export async function listTasksPage(actor: TenantActor, page: PageQuery, status?: string): Promise<PageResult<Row>> {
+  await assertModule(actor, 'tasks');
+  const { data, error } = await taskQuery(actor, status).range(page.offset, page.offset + page.limit);
+  fail(error, 'Could not list tasks.');
+  return pageResult((data ?? []) as Row[], page);
 }
 
 export async function createTask(
@@ -485,6 +507,7 @@ export async function acceptInvitation(input: {
   if (!isUserRole(String(invite.role))) {
     throw new PlatformError('invalid', 'Invitation role is not valid.', 400);
   }
+  assertModuleEnabled(await enabledModuleNames(String(invite.company_id)), 'staff');
   const passwordHash = await hashPassword(input.password);
   const created = await supabaseAdmin
     .from('users')
@@ -612,6 +635,7 @@ export async function createSchedule(
     throw new PlatformError('forbidden', 'Only a manager or admin can publish a shift.', 403);
   }
   await assertSameCompanyUser(actor.companyId, input.userId);
+  assertShiftWindow(input.startTime, input.endTime);
   const { data, error } = await supabaseAdmin
     .from('schedules')
     .insert({
@@ -1070,4 +1094,507 @@ export async function updateCompanySettings(actor: TenantActor, input: { name?: 
   fail(error, 'Could not update settings.');
   await writeAudit(actor, 'company.updated', 'company', actor.companyId, patch);
   return data;
+}
+
+function idOrNull(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null;
+  return String(value);
+}
+
+function assertShiftWindow(startTime: string, endTime: string) {
+  const startMs = Date.parse(startTime);
+  const endMs = Date.parse(endTime);
+  if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) {
+    throw new PlatformError('invalid', 'Shift end must be after the start.', 400);
+  }
+}
+
+async function pagedRows(
+  query: PromiseLike<unknown>,
+  page: PageQuery,
+  message: string,
+): Promise<PageResult<Row>> {
+  const result = (await query) as { data: unknown; error: { message: string } | null };
+  fail(result.error, message);
+  return pageResult((Array.isArray(result.data) ? result.data : []) as Row[], page);
+}
+
+export async function getTask(actor: TenantActor, id: string) {
+  await assertModule(actor, 'tasks');
+  const { data, error } = await supabaseAdmin
+    .from('tasks')
+    .select('id, title, description, status, priority, due_date, assigned_to_id, assigned_by_id, created_at, updated_at')
+    .eq('company_id', scopedCompanyId(actor))
+    .eq('id', id)
+    .maybeSingle();
+  fail(error, 'Could not read the task.');
+  const task = data as Row | null;
+  if (!task || !canReadTask(actor, { assigned_to_id: idOrNull(task.assigned_to_id), assigned_by_id: idOrNull(task.assigned_by_id) })) {
+    throw new PlatformError('not_found', 'Task not found.', 404);
+  }
+  return task;
+}
+
+export async function updateTask(
+  actor: TenantActor,
+  id: string,
+  input: {
+    title?: string;
+    description?: string | null;
+    assignedToId?: string | null;
+    dueDate?: string | null;
+    priority?: string;
+    status?: string;
+  },
+) {
+  const existing = await getTask(actor, id);
+  const decision = taskUpdateDecision(
+    actor,
+    { assigned_to_id: idOrNull(existing.assigned_to_id), assigned_by_id: idOrNull(existing.assigned_by_id) },
+    input,
+  );
+  if (!decision.ok) throw new PlatformError(decision.code, decision.message, decision.status);
+  if (input.assignedToId) await assertSameCompanyUser(actor.companyId, input.assignedToId);
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (input.title !== undefined) patch.title = input.title;
+  if (input.description !== undefined) patch.description = input.description;
+  if (input.assignedToId !== undefined) patch.assigned_to_id = input.assignedToId;
+  if (input.dueDate !== undefined) patch.due_date = input.dueDate;
+  if (input.priority !== undefined) patch.priority = input.priority;
+  if (input.status !== undefined) {
+    patch.status = input.status;
+    patch.completed_at = input.status === 'completed' ? new Date().toISOString() : null;
+  }
+  const { data, error } = await supabaseAdmin
+    .from('tasks')
+    .update(patch)
+    .eq('id', id)
+    .eq('company_id', actor.companyId)
+    .select('id, title, description, status, priority, due_date, assigned_to_id')
+    .single();
+  fail(error, 'Could not update the task.');
+  await writeAudit(actor, 'task.updated', 'task', id, patch);
+  if (input.assignedToId) {
+    await notify(actor.companyId, input.assignedToId, 'Task updated', input.title ?? 'A task was assigned to you', '/customer/tasks');
+  }
+  return data;
+}
+
+export async function deleteTask(actor: TenantActor, id: string) {
+  await getTask(actor, id);
+  const decision = taskDeleteDecision(actor);
+  if (!decision.ok) throw new PlatformError(decision.code, decision.message, decision.status);
+  const { data, error } = await supabaseAdmin
+    .from('tasks')
+    .delete()
+    .eq('id', id)
+    .eq('company_id', actor.companyId)
+    .select('id')
+    .maybeSingle();
+  fail(error, 'Could not delete the task.');
+  if (!data) throw new PlatformError('not_found', 'Task not found.', 404);
+  await writeAudit(actor, 'task.deleted', 'task', id, {});
+  return { ok: true };
+}
+
+export async function listUsersPage(actor: TenantActor, page: PageQuery) {
+  await assertModule(actor, 'staff');
+  return pagedRows(
+    supabaseAdmin
+      .from('users')
+      .select('id, email, first_name, last_name, role, is_active, created_at')
+      .eq('company_id', scopedCompanyId(actor))
+      .order('created_at')
+      .range(page.offset, page.offset + page.limit),
+    page,
+    'Could not list staff.',
+  );
+}
+
+export async function getStaffMember(actor: TenantActor, id: string) {
+  await assertModule(actor, 'staff');
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('id, email, first_name, last_name, role, is_active, created_at')
+    .eq('company_id', scopedCompanyId(actor))
+    .eq('id', id)
+    .maybeSingle();
+  fail(error, 'Could not read the staff member.');
+  if (!data) throw new PlatformError('not_found', 'That person is not in this company.', 404);
+  return data;
+}
+
+export async function updateStaffMember(
+  actor: TenantActor,
+  id: string,
+  input: { role?: UserRole; isActive?: boolean; firstName?: string; lastName?: string },
+) {
+  const existing = (await getStaffMember(actor, id)) as Row;
+  if (staffEditDecision(actor, { role: String(existing.role), userId: String(existing.id) }, input) !== 'ok') {
+    throw new PlatformError('forbidden', 'You cannot change that staff member.', 403);
+  }
+  const patch: Record<string, unknown> = {};
+  if (input.role) patch.role = input.role;
+  if (input.isActive !== undefined) patch.is_active = input.isActive;
+  if (input.firstName) patch.first_name = input.firstName;
+  if (input.lastName) patch.last_name = input.lastName;
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .update(patch)
+    .eq('id', id)
+    .eq('company_id', actor.companyId)
+    .select('id, email, first_name, last_name, role, is_active')
+    .single();
+  fail(error, 'Could not update the staff member.');
+  await writeAudit(actor, 'staff.updated', 'user', id, patch);
+  return data;
+}
+
+export async function listDepartmentsPage(actor: TenantActor, page: PageQuery) {
+  await assertModule(actor, 'staff');
+  return pagedRows(
+    supabaseAdmin
+      .from('departments')
+      .select('id, name, parent_id, manager_id')
+      .eq('company_id', scopedCompanyId(actor))
+      .order('name')
+      .range(page.offset, page.offset + page.limit),
+    page,
+    'Could not list departments.',
+  );
+}
+
+export async function listNotificationsPage(actor: TenantActor, page: PageQuery, unreadOnly = false) {
+  await assertModule(actor, 'notifications');
+  let query = supabaseAdmin
+    .from('notifications')
+    .select('id, title, message, type, link, read, created_at')
+    .eq('company_id', scopedCompanyId(actor))
+    .eq('user_id', actor.userId)
+    .order('created_at', { ascending: false });
+  if (unreadOnly) query = query.eq('read', false);
+  return pagedRows(query.range(page.offset, page.offset + page.limit), page, 'Could not list notifications.');
+}
+
+export async function markAllNotificationsRead(actor: TenantActor) {
+  await assertModule(actor, 'notifications');
+  const { error } = await supabaseAdmin
+    .from('notifications')
+    .update({ read: true })
+    .eq('company_id', scopedCompanyId(actor))
+    .eq('user_id', actor.userId)
+    .eq('read', false);
+  fail(error, 'Could not update notifications.');
+  return { ok: true };
+}
+
+export async function listAuditPage(actor: TenantActor, page: PageQuery) {
+  requireConfigured();
+  if (!canViewAudit(actor.role)) {
+    throw new PlatformError('forbidden', 'Only an admin can read the audit log.', 403);
+  }
+  return pagedRows(
+    supabaseAdmin
+      .from('audit_logs')
+      .select('id, user_id, action, entity_type, entity_id, changes, created_at')
+      .eq('company_id', scopedCompanyId(actor))
+      .order('created_at', { ascending: false })
+      .range(page.offset, page.offset + page.limit),
+    page,
+    'Could not read the audit log.',
+  );
+}
+
+export async function listIncidentsPage(actor: TenantActor, page: PageQuery, status?: string) {
+  await assertModule(actor, 'incidents');
+  const scope = companyOrOwn(actor, canSeeCompanyTasks(actor.role));
+  let query = supabaseAdmin
+    .from('incidents')
+    .select('id, title, description, status, location_label, reported_by, assigned_to, created_at')
+    .eq('company_id', scope.companyId)
+    .order('created_at', { ascending: false });
+  if (scope.ownUserId) query = query.eq('reported_by', scope.ownUserId);
+  if (status) query = query.eq('status', status);
+  return pagedRows(query.range(page.offset, page.offset + page.limit), page, 'Could not list incidents.');
+}
+
+export async function getIncident(actor: TenantActor, id: string) {
+  await assertModule(actor, 'incidents');
+  const { data, error } = await supabaseAdmin
+    .from('incidents')
+    .select('id, title, description, status, location_label, reported_by, assigned_to, created_at, updated_at')
+    .eq('company_id', scopedCompanyId(actor))
+    .eq('id', id)
+    .maybeSingle();
+  fail(error, 'Could not read the incident.');
+  const incident = data as Row | null;
+  if (!incident || !canReadIncident(actor, { reported_by: idOrNull(incident.reported_by) })) {
+    throw new PlatformError('not_found', 'Incident not found.', 404);
+  }
+  return incident;
+}
+
+export async function updateIncident(
+  actor: TenantActor,
+  id: string,
+  input: {
+    title?: string;
+    description?: string | null;
+    locationLabel?: string | null;
+    status?: string;
+    assignedToId?: string | null;
+  },
+) {
+  if (!canManagePeople(actor.role)) {
+    throw new PlatformError('forbidden', 'Only a manager or admin can update an incident.', 403);
+  }
+  await getIncident(actor, id);
+  if (input.assignedToId) await assertSameCompanyUser(actor.companyId, input.assignedToId);
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (input.title !== undefined) patch.title = input.title;
+  if (input.description !== undefined) patch.description = input.description;
+  if (input.locationLabel !== undefined) patch.location_label = input.locationLabel;
+  if (input.status !== undefined) patch.status = input.status;
+  if (input.assignedToId !== undefined) patch.assigned_to = input.assignedToId;
+  const { data, error } = await supabaseAdmin
+    .from('incidents')
+    .update(patch)
+    .eq('id', id)
+    .eq('company_id', actor.companyId)
+    .select('id, title, status, assigned_to')
+    .single();
+  fail(error, 'Could not update the incident.');
+  await writeAudit(actor, 'incident.updated', 'incident', id, patch);
+  return data;
+}
+
+export async function listSchedulesPage(actor: TenantActor, page: PageQuery) {
+  await assertModule(actor, 'scheduling');
+  const scope = companyOrOwn(actor, canSeeCompanyTasks(actor.role));
+  let query = supabaseAdmin
+    .from('schedules')
+    .select('id, user_id, start_time, end_time, shift_type, status, notes')
+    .eq('company_id', scope.companyId)
+    .order('start_time');
+  if (scope.ownUserId) query = query.eq('user_id', scope.ownUserId);
+  return pagedRows(query.range(page.offset, page.offset + page.limit), page, 'Could not list schedules.');
+}
+
+export async function getSchedule(actor: TenantActor, id: string) {
+  await assertModule(actor, 'scheduling');
+  const { data, error } = await supabaseAdmin
+    .from('schedules')
+    .select('id, user_id, start_time, end_time, shift_type, status, notes')
+    .eq('company_id', scopedCompanyId(actor))
+    .eq('id', id)
+    .maybeSingle();
+  fail(error, 'Could not read the shift.');
+  const schedule = data as Row | null;
+  if (!schedule || !canReadSchedule(actor, { user_id: String(schedule.user_id) })) {
+    throw new PlatformError('not_found', 'Shift not found.', 404);
+  }
+  return schedule;
+}
+
+export async function updateSchedule(
+  actor: TenantActor,
+  id: string,
+  input: { userId?: string; startTime?: string; endTime?: string; shiftType?: string; notes?: string | null; status?: string },
+) {
+  await assertModule(actor, 'scheduling');
+  if (!canManagePeople(actor.role)) {
+    throw new PlatformError('forbidden', 'Only a manager or admin can change a shift.', 403);
+  }
+  const existing = (await getSchedule(actor, id)) as Row;
+  if (input.userId) await assertSameCompanyUser(actor.companyId, input.userId);
+  const startTime = input.startTime ?? String(existing.start_time);
+  const endTime = input.endTime ?? String(existing.end_time);
+  assertShiftWindow(startTime, endTime);
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (input.userId !== undefined) patch.user_id = input.userId;
+  if (input.startTime !== undefined) patch.start_time = input.startTime;
+  if (input.endTime !== undefined) patch.end_time = input.endTime;
+  if (input.shiftType !== undefined) patch.shift_type = input.shiftType;
+  if (input.notes !== undefined) patch.notes = input.notes;
+  if (input.status !== undefined) patch.status = input.status;
+  const { data, error } = await supabaseAdmin
+    .from('schedules')
+    .update(patch)
+    .eq('id', id)
+    .eq('company_id', actor.companyId)
+    .select('id, user_id, start_time, end_time, shift_type, status')
+    .single();
+  fail(error, 'Could not update the shift.');
+  await writeAudit(actor, 'schedule.updated', 'schedule', id, {});
+  return data;
+}
+
+export async function deleteSchedule(actor: TenantActor, id: string) {
+  await assertModule(actor, 'scheduling');
+  if (!canManagePeople(actor.role)) {
+    throw new PlatformError('forbidden', 'Only a manager or admin can delete a shift.', 403);
+  }
+  await getSchedule(actor, id);
+  const { data, error } = await supabaseAdmin
+    .from('schedules')
+    .delete()
+    .eq('id', id)
+    .eq('company_id', actor.companyId)
+    .select('id')
+    .maybeSingle();
+  fail(error, 'Could not delete the shift.');
+  if (!data) throw new PlatformError('not_found', 'Shift not found.', 404);
+  await writeAudit(actor, 'schedule.deleted', 'schedule', id, {});
+  return { ok: true };
+}
+
+export async function listAttendance(actor: TenantActor, page: PageQuery, userId?: string) {
+  await assertModule(actor, 'geofence_attendance');
+  const scope = companyOrOwn(actor, canSeeCompanyTasks(actor.role));
+  let query = supabaseAdmin
+    .from('attendance')
+    .select('id, user_id, schedule_id, clock_in, clock_out, status, notes, created_at')
+    .eq('company_id', scope.companyId)
+    .order('created_at', { ascending: false });
+  if (scope.ownUserId) query = query.eq('user_id', scope.ownUserId);
+  else if (userId) {
+    await assertSameCompanyUser(actor.companyId, userId);
+    query = query.eq('user_id', userId);
+  }
+  return pagedRows(query.range(page.offset, page.offset + page.limit), page, 'Could not list attendance.');
+}
+
+export async function clockOut(actor: TenantActor, input: { lat?: number; lng?: number }) {
+  await assertModule(actor, 'geofence_attendance');
+  const open = await supabaseAdmin
+    .from('attendance')
+    .select('id, clock_in')
+    .eq('company_id', scopedCompanyId(actor))
+    .eq('user_id', actor.userId)
+    .eq('status', 'clocked_in')
+    .order('clock_in', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  fail(open.error, 'Could not read attendance.');
+  const openRow = open.data as Row | null;
+  if (!openRow) throw new PlatformError('conflict', 'No open clock-in to close.', 409);
+  const { data, error } = await supabaseAdmin
+    .from('attendance')
+    .update({
+      clock_out: new Date().toISOString(),
+      clock_out_location:
+        input.lat === undefined ? null : { lat: input.lat, lng: input.lng, provider: 'device_coordinates' },
+      status: 'clocked_out',
+    })
+    .eq('id', openRow.id)
+    .eq('company_id', actor.companyId)
+    .eq('user_id', actor.userId)
+    .select('id, status, clock_in, clock_out')
+    .single();
+  fail(error, 'Could not record clock-out.');
+  await writeAudit(actor, 'attendance.clock_out', 'attendance', String(openRow.id), {});
+  return data;
+}
+
+export async function listWalletEntries(actor: TenantActor, page: PageQuery, userId?: string) {
+  await assertModule(actor, 'wallet');
+  const target = walletReadUserId(actor, userId);
+  if (target === 'forbidden') {
+    throw new PlatformError('forbidden', 'You can only read your own wallet.', 403);
+  }
+  if (target !== actor.userId) await assertSameCompanyUser(actor.companyId, target);
+  const accountResult = await supabaseAdmin
+    .from('wallet_accounts')
+    .select('id, user_id, currency')
+    .eq('company_id', scopedCompanyId(actor))
+    .eq('user_id', target)
+    .maybeSingle();
+  fail(accountResult.error, 'Could not read the wallet.');
+  const account = accountResult.data as Row | null;
+  if (!account) {
+    return { account: null, balanceCents: 0, ...pageResult([], page) };
+  }
+  const amounts = await supabaseAdmin
+    .from('wallet_entries')
+    .select('amount_cents, direction')
+    .eq('company_id', actor.companyId)
+    .eq('account_id', account.id);
+  fail(amounts.error, 'Could not read wallet entries.');
+  const balanceCents = ledgerBalanceCents(
+    ((amounts.data ?? []) as Row[]).map((row) => ({
+      amountCents: Number(row.amount_cents),
+      direction: row.direction as 'credit' | 'debit',
+    })),
+  );
+  const entries = await pagedRows(
+    supabaseAdmin
+      .from('wallet_entries')
+      .select('id, amount_cents, direction, source, memo, created_at')
+      .eq('company_id', actor.companyId)
+      .eq('account_id', account.id)
+      .order('created_at', { ascending: false })
+      .range(page.offset, page.offset + page.limit),
+    page,
+    'Could not read wallet entries.',
+  );
+  return { account, balanceCents, ...entries };
+}
+
+export async function listOrdersPage(actor: TenantActor, page: PageQuery) {
+  await assertModule(actor, 'pos');
+  return pagedRows(
+    supabaseAdmin
+      .from('pos_orders')
+      .select('id, table_label, status, items, total_cents, payment_status, created_at')
+      .eq('company_id', scopedCompanyId(actor))
+      .order('created_at', { ascending: false })
+      .range(page.offset, page.offset + page.limit),
+    page,
+    'Could not list orders.',
+  );
+}
+
+export async function listCamerasPage(actor: TenantActor, page: PageQuery) {
+  await assertModule(actor, 'cctv');
+  const paged = await pagedRows(
+    supabaseAdmin
+      .from('cameras')
+      .select('id, name, site_label, provider, external_ref')
+      .eq('company_id', scopedCompanyId(actor))
+      .order('name')
+      .range(page.offset, page.offset + page.limit),
+    page,
+    'Could not list cameras.',
+  );
+  return {
+    ...paged,
+    items: paged.items.map((camera) => ({ ...camera, stream: cameraStream(camera.provider ? String(camera.provider) : null) })),
+  };
+}
+
+export async function listLocationsPage(actor: TenantActor, page: PageQuery) {
+  await assertModule(actor, 'find_my_staff');
+  const scope = companyOrOwn(actor, canViewStaffHealth(actor.role));
+  let query = supabaseAdmin
+    .from('staff_locations')
+    .select('id, user_id, latitude, longitude, recorded_at, consent')
+    .eq('company_id', scope.companyId)
+    .eq('consent', true)
+    .order('recorded_at', { ascending: false });
+  if (scope.ownUserId) query = query.eq('user_id', scope.ownUserId);
+  const paged = await pagedRows(query.range(page.offset, page.offset + page.limit), page, 'Could not read locations.');
+  return { ...paged, map: mapProviderStatus() };
+}
+
+export async function revokeToken(actor: TenantActor, rawToken: string) {
+  requireConfigured();
+  const { error } = await supabaseAdmin
+    .from('api_tokens')
+    .delete()
+    .eq('token_hash', hashToken(rawToken))
+    .eq('company_id', actor.companyId)
+    .eq('user_id', actor.userId);
+  fail(error, 'Could not revoke the token.');
+  await writeAudit(actor, 'auth.token_revoked', 'user', actor.userId, {});
+  return { ok: true };
 }

@@ -344,3 +344,4 @@ The web app has a Playwright smoke (landing, signup, customer login, unauthentic
 Web UI component library is already decided outside this brief: shadcn, until replaced. That decision does not choose the mobile toolkit.
 
 Schema notes for this repo live in `docs/DATABASE.md`. The app uses the Supabase service role. Row level security denies the anon key. Sample rows, when seeded, belong to company slug `demo-kitchen` and are not written onto any other company.
+30 Oct 2026 implementation note: the future mobile client calls `/api/v1` (`docs/API-V1.md`). The server checks the bearer token, the company, the role, and whether the module is on. Payments, map tiles, CCTV streams, and email remain stubs and are not called.

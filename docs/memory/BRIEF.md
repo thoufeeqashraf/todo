@@ -6,7 +6,7 @@ Last updated: 30 Oct 2026. Canonical detail, scenarios, competitors, and quote m
 
 Multi-tenant SaaS for business operations. Companies run tasks, staff accountability, attendance, and industry-specific workflows. Later optional modules add duty rosters, a wallet, a consumer mini-app shell, POS QR ordering, and premium CCTV AI.
 
-Clients: web, iOS, and Android. The web platform has two logins. Admin and staff sign in to control the mobile app and manage the platform. Customers use a different login on the same web to run their business. Mobile is the app those customers use. Inside a customer company, officials use the customer web in depth and frontline people use mobile. A person outside a company staff context eventually gets a consumer mini-app marketplace. That consumer shell is P4.
+Clients: web, iOS, and Android. Mobile is not scaffolded. When it is, it calls `/api/v1` as written in `docs/API-V1.md` (bearer token, module gates, paginated lists). The web platform has two logins. Admin and staff sign in to control the mobile app and manage the platform. Customers use a different login on the same web to run their business. Mobile is the app those customers use. Inside a customer company, officials use the customer web in depth and frontline people use mobile. A person outside a company staff context eventually gets a consumer mini-app marketplace. That consumer shell is P4.
 
 Commercial model: monthly or yearly subscriptions. Target scale about 100,000 users across many companies.
 
