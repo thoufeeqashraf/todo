@@ -8,7 +8,7 @@ Multi-tenant SaaS for business operations. Companies run tasks, staff accountabi
 
 Clients: web, iOS, and Android. Mobile is not scaffolded. When it is, it calls `/api/v1` as written in `docs/API-V1.md` (bearer token, module gates, paginated lists). The web platform has two logins. Admin and staff sign in to control the mobile app and manage the platform. Customers use a different login on the same web to run their business. Mobile is the app those customers use. Inside a customer company, officials use the customer web in depth and frontline people use mobile. A person outside a company staff context eventually gets a consumer mini-app marketplace. That consumer shell is P4.
 
-Commercial model: monthly or yearly subscriptions. Target scale about 100,000 users across many companies.
+Commercial model: monthly or yearly subscriptions. Target scale about 100,000 users across many companies. Company plans are Starter, Growth, and Scale, billed in INR through Stripe Checkout. That charge is separate from the wallet, which still uses the Transaction Junction API. Setup is `docs/BILLING.md`.
 
 ## Principles that shape the build
 
