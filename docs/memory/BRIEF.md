@@ -6,9 +6,9 @@ Last updated: 30 Oct 2026. Canonical detail, scenarios, competitors, and quote m
 
 Multi-tenant SaaS for business operations. Companies run tasks, staff accountability, attendance, and industry-specific workflows. Later optional modules add duty rosters, a wallet, a consumer mini-app shell, POS QR ordering, and premium CCTV AI.
 
-Clients: web, iOS, and Android. The web platform has two logins. Admin and staff sign in to control the mobile app and manage the platform. Customers use a different login on the same web to run their business. Mobile is the app those customers use. Inside a customer company, officials use the customer web in depth and frontline people use mobile. A person outside a company staff context eventually gets a consumer mini-app marketplace. That consumer shell is P4.
+Clients: web, iOS, and Android. Mobile is not scaffolded. When it is, it calls `/api/v1` as written in `docs/API-V1.md` (bearer token, module gates, paginated lists). The web platform has two logins. Admin and staff sign in to control the mobile app and manage the platform. Customers use a different login on the same web to run their business. Mobile is the app those customers use. Inside a customer company, officials use the customer web in depth and frontline people use mobile. A person outside a company staff context eventually gets a consumer mini-app marketplace. That consumer shell is P4.
 
-Commercial model: monthly or yearly subscriptions. Target scale about 100,000 users across many companies.
+Commercial model: monthly or yearly subscriptions. Target scale about 100,000 users across many companies. Company plans are Starter, Growth, and Scale, billed in INR through Stripe Checkout. That charge is separate from the wallet, which still uses the Transaction Junction API. Setup is `docs/BILLING.md`.
 
 ## Principles that shape the build
 
@@ -20,6 +20,7 @@ Commercial model: monthly or yearly subscriptions. Target scale about 100,000 us
 - Optional modules are off unless the company turns them on. Example: AI duty roster.
 - Wallet money movement uses the Transaction Junction API. Do not build a payment gateway.
 - GPS, staff scoring, and wallet flows need South African POPIA, labour, and payments review before they ship.
+- The app reads and writes Supabase with the service role. Row level security denies the anon key. Sample data lives on company slug `demo-kitchen`, not on a real company. See `docs/DATABASE.md`.
 
 ## First markets
 
@@ -38,10 +39,46 @@ Shared core loop: assign, due time, checklist, proof, manager visibility.
 | P5 POS QR ordering | After this window. Re-quote. |
 | P6 CCTV AI | After this window. Re-quote. |
 
+The customer console has dedicated screens for incidents, geofence attendance, Find My Staff, staff health, wallet, POS, and CCTV. They read company rows when that module is on. Payments, map tiles, and camera streams stay stubs. Those screens do not pull P2–P6 into this window.
+
 Quoted P1 is 3,200 hours. One full-time developer for six months is about 960 hours. The calendar sequences P1. It does not mean the quoted hour totals finish on 30 Apr 2027.
 
 Sell P1+P2 first ($210,000 face / $157,500 cash to the developer). Full vision face is $580,000–$620,000. Face rate is $35/hour. If price is pushed, cut scope, not the rate. Deal context recorded in the brief: 75% cash, 25% ownership, no unpaid AMC after settlement.
 
+## Verification
+
+GitHub Actions runs lint, typecheck, the unit tests, `npm run build`, and a Playwright smoke against that production server. The smoke checks the landing page, signup, customer login, and that an unauthenticated visit to `/customer` goes to customer login. It does not need Supabase keys. Playwright is a devDependency and does not run during `npm run build`.
+
 ## Still open
 
-See section 13 of `DEVELOPMENT-BRIEF.md` and the open list in `DECISIONS.md`. Stack and hosting block scaffolding.
+See section 13 of `DEVELOPMENT-BRIEF.md` and the open list in `DECISIONS.md`. The web stack is Next.js. The mobile toolkit is still open. Each company chooses `za`, `eu`, or `multi` as its data region.
+
+System pages (not-found, error, loading, icons, manifest, robots, sitemap, and Open Graph) present the product as ToDo App. The commercial product name for the rest of the console is still the open kickoff item. Per-company logos and colours are not built.
+
+Repo-shaped docs, written from the code on 30 Oct 2026: `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN-SYSTEM.md`, `docs/RUNBOOK.md`, `docs/ROADMAP.md`. If one of those disagrees with this brief or with `DEVELOPMENT-BRIEF.md`, the development brief wins.
+
+## Admin console
+
+Company admins can open `/customer/audit`, `/customer/team`, and `/customer/billing`. Audit and team read that company’s rows. Invites post to `POST /api/v1/invitations`. Billing shows the company subscription and invoices. Company admins can Subscribe or Upgrade through Stripe Checkout. If Stripe is not configured, the page says billing is not set up yet and does not charge a card. The wallet is unchanged. The route list for the shell is `src/components/admin/nav.ts`.
+
+Company admins can open `/customer/audit`, `/customer/team`, and `/customer/billing`. Audit and team read that company’s rows. Invites post to `POST /api/v1/invitations`. Billing shows plan, usage, and invoice placeholders and does not charge a card. The route list for the shell is `src/components/admin/nav.ts`.
+
+## Customer console
+
+`/customer/projects`, `/customer/clients`, and `/customer/notifications` follow the projects, clients, and notifications modules. Projects is a board and list of tasks. Clients has no table yet. Notifications is the signed-in user’s in-app inbox. Email and push are not connected.
+
+## On the web (30 Oct 2026)
+
+Customer analytics is `/customer/analytics`. It is available only when the reports module is on. It reads tasks, attendance, and incidents already stored for the signed-in company. It does not add tables. Incident severity is classified from `incidents.status`. The route is exported from `src/components/analytics/nav.ts` for the customer shell.
+
+Public pages currently say ToDo App. The development brief title is unchanged until that file is edited.
+
+## Help and setup (30 Oct 2026)
+
+`/help` is a public help center. Articles are static data in `src/content/help.ts`, with category filters and a page per slug. Signed-in customers open `/customer/onboarding` for five checks: create a team, invite staff, enable modules, set a geofence, and connect mobile later. The first four are done only when this company already has the matching rows. Mobile stays open. Paths for other screens are exported from `src/components/help/nav.ts`. This does not add a migration and does not move P2–P6 into the current window.
+
+## Platform owner (30 Oct 2026)
+
+`/owner` is the vendor console. It is not the company admin view. The signed-in user must be listed in `PLATFORM_OWNER_EMAILS` (default `thoufeeq2009@gmail.com`) or be the admin of company slug `todo-app-hq`. After customer login, that account sees a Platform Owner link. Details are in `docs/OWNER-CONSOLE.md`. This does not add a migration.
+
+Unsigned `/owner` requests, and signed-in company admins, receive HTTP 401 or 403 from `src/proxy.ts` before the page streams.

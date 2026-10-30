@@ -1,6 +1,8 @@
 # Workplace Todo / Business Operations Platform
 
-Development brief and commercial reference, compiled October 2026 from product planning conversations. This file is the canonical upload. If a summary in `BRIEF.md` disagrees with this file, this file wins until the user changes it.
+Development brief and commercial reference, compiled October 2026 from product planning conversations. This file is the canonical upload. If a summary in `BRIEF.md` disagrees with this file, this file wins until the user changes it. Repo-shaped companions (`docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN-SYSTEM.md`, `docs/RUNBOOK.md`, `docs/ROADMAP.md`) describe what the code contains. If they disagree with this file, this file wins.
+
+30 Oct 2026 note: system routes (not-found, error, loading, icons, manifest, robots, sitemap, Open Graph) use the name ToDo App and a checklist logomark. Constants live in `src/lib/seo.ts`. This does not set per-company logos or colours, and it does not close the open product-name item for the rest of the console.
 
 Commercial model: SaaS, monthly or yearly subscriptions.
 
@@ -89,6 +91,8 @@ Owners, GMs, area and regional managers. Store, site, and branch managers. Shift
 
 The current `/login` route is only the temporary operator gate. It is not the customer entrance.
 
+Inside a customer company, admins also have `/customer/audit`, `/customer/team`, and `/customer/billing`. Billing on that screen lists the company subscription and invoices and starts Stripe Checkout for admins. It is not the wallet.
+
 ### 4.5 Three primary user types on the customer side
 
 1. Doers complete personal and assigned tasks.
@@ -166,7 +170,11 @@ Few tools cover all of this well for SMBs across industries: who is on shift, wh
 | CCTV AI | Live feed and AI checks | P6 |
 | Platform admin and staff | Operator login. Control the customer mobile app, tenants, and platform configuration. Billing depth follows the commercial phase in force | With the phase that needs it |
 
-Payments: use the Transaction Junction API. Do not build a payment gateway. Still build the wallet ledger, webhooks, reconciliation, QR flows, limits, and admin tools. That work is P4.
+Payments: use the Transaction Junction API for the wallet. Do not build a payment gateway for wallet top-up, P2P, or QR pay. Still build the wallet ledger, webhooks, reconciliation, QR flows, limits, and admin tools. That work is P4.
+
+Company subscription billing (what a company pays for this product) is Stripe Checkout in INR: Starter ₹1,499/month, Growth ₹4,999/month, Scale ₹14,999/month. It is not the wallet and it does not replace Transaction Junction. Setup, keys, and the webhook URL are in `docs/BILLING.md`.
+
+Customer web routes for the catalogue modules `projects`, `clients`, and `notifications` are `/customer/projects`, `/customer/clients`, and `/customer/notifications`. Each one stays closed unless that module is on. The projects screen is a board and a list of tasks, with departments as project names. There is no projects table and no clients table. Client accounts are stored on the clients module settings until a table exists. The notifications screen lists in-app rows for the signed-in user. Email and push are not connected.
 
 ## 7. Delivery phases
 
@@ -315,6 +323,8 @@ Rules first, AI second. Fully dynamic assignment is later than the rules engine.
 
 GPS tracking, staff scoring, and wallet money movement need POPIA, labour, and payments legal review in South Africa.
 
+The web app has a Playwright smoke (landing, signup, customer login, unauthenticated `/customer` redirect) that runs on a local production build with no Supabase keys. That smoke is not P1 acceptance. Playwright is a devDependency and does not run during `npm run build`.
+
 ## 12. Quote floor
 
 | Decision | Number |
@@ -338,3 +348,27 @@ GPS tracking, staff scoring, and wallet money movement need POPIA, labour, and p
 - Hosting region: South Africa, EU, or multi-region.
 
 Web UI component library is already decided outside this brief: shadcn, until replaced. That decision does not choose the mobile toolkit.
+
+Schema notes for this repo live in `docs/DATABASE.md`. The app uses the Supabase service role. Row level security denies the anon key. Sample rows, when seeded, belong to company slug `demo-kitchen` and are not written onto any other company.
+30 Oct 2026 implementation note: the future mobile client calls `/api/v1` (`docs/API-V1.md`). The server checks the bearer token, the company, the role, and whether the module is on. Payments, map tiles, CCTV streams, and email remain stubs and are not called.
+Customer analytics at `/customer/analytics` is a reports-module view of existing task, attendance, and incident rows. It does not add tables. Incident severity is classified from `incidents.status` because that table has no severity column.
+## 14. Help center and setup checklist (repo, 30 Oct 2026)
+
+This note records what the web app serves. It does not change phase scope, quotes, or the open decisions above.
+
+- `/help` is public. Articles and categories live in `src/content/help.ts`. Each article is `/help/[slug]`. Search filters that file in the browser.
+- `/customer/onboarding` is the signed-in setup checklist: create a team (`teams`), invite staff (`invitations` or a second user), enable modules (`company_modules.is_enabled`), set a geofence (active `geofences`), connect mobile later. Mobile stays open. No phone is stored.
+- `/customer/module/onboarding` remains the older company, industry, region, module, people, and first-task list. It is a different screen.
+- Other UI should import `/help` and `/customer/onboarding` from `src/components/help/nav.ts`.
+- No new table or migration.
+
+## 15. Platform owner console (repo, 30 Oct 2026)
+
+This note records the vendor console. It does not change phase scope, quotes, or the open decisions above.
+
+- The product vendor is not the same as a company admin. `/owner` lists and configures every business.
+- An owner is an email in `PLATFORM_OWNER_EMAILS` (comma-separated; default `thoufeeq2009@gmail.com`) or an admin of the company with slug `todo-app-hq`. The check is server-side. Other accounts get 403. Signed-out requests get 401.
+- Suspension is `companies.settings.status`. No new migration. Migration 005 billing tables are read when present and skipped when they are not.
+- The same commands are available at `/api/owner` and `/api/v1/owner` for a future mobile control plane. Every change is written to `audit_logs`.
+- Setup and routes are in `docs/OWNER-CONSOLE.md`.
+- Document requests to `/owner` return HTTP 401 or 403 from `src/proxy.ts` before the page streams. A missing session cookie does not read tenant data.

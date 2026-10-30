@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,11 +23,15 @@ export function LoginForm() {
     undefined,
   );
 
+  useEffect(() => {
+    if (state?.error) toast.error(state.error);
+  }, [state]);
+
   return (
-    <Card>
+    <Card className="bg-card/85 shadow-lg shadow-primary/5">
       <CardHeader>
         <CardTitle>
-          <h1>Operator sign in</h1>
+          <h1 className="text-base font-medium tracking-tight">Operator sign in</h1>
         </CardTitle>
         <CardDescription>
           Development only. Any username and password enters. Choose Admin or
@@ -38,7 +43,7 @@ export function LoginForm() {
           <fieldset className="flex flex-col gap-2">
             <legend className="text-sm font-medium">Enter as</legend>
             <div className="grid grid-cols-2 gap-2">
-              <label className="flex cursor-pointer items-center justify-center rounded-lg border border-input px-2.5 py-2 text-sm has-[:checked]:border-foreground has-[:checked]:bg-foreground has-[:checked]:text-background has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50">
+              <label className="flex cursor-pointer items-center justify-center rounded-lg border border-input bg-card px-2.5 py-2 text-sm transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50">
                 <input
                   className="sr-only"
                   type="radio"
@@ -48,7 +53,7 @@ export function LoginForm() {
                 />
                 Admin
               </label>
-              <label className="flex cursor-pointer items-center justify-center rounded-lg border border-input px-2.5 py-2 text-sm has-[:checked]:border-foreground has-[:checked]:bg-foreground has-[:checked]:text-background has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50">
+              <label className="flex cursor-pointer items-center justify-center rounded-lg border border-input bg-card px-2.5 py-2 text-sm transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50">
                 <input className="sr-only" type="radio" name="role" value="staff" />
                 Staff
               </label>
@@ -85,10 +90,13 @@ export function LoginForm() {
             </p>
           ) : null}
         </CardContent>
-        <CardFooter>
-          <Button type="submit" className="w-full" disabled={pending}>
+        <CardFooter className="flex-col items-stretch gap-3">
+          <Button type="submit" className="h-10 w-full" disabled={pending}>
             {pending ? "Signing in…" : "Sign in"}
           </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            Company admins use customer sign-in, not this gate.
+          </p>
         </CardFooter>
       </form>
     </Card>
