@@ -21,3 +21,4 @@ Append a short entry when a meaningful piece of work lands. Do not log speculati
 - Wallet top-up, POS payment, CCTV streams, map tiles, email, and mini-app partners are stubs. They do not move money, open a stream, or send mail.
 - Proof photos and video, ten-level visibility, AI roster, AI staff health, and mobile apps are not built.
 - Replaced native `bcrypt` with `bcryptjs` and deferred Supabase client setup until a request uses it, so a Vercel build with no env vars can resolve dependencies and finish `npm run build`.
+- Recorded the web control-plane decision and wrote the `/api/v1` contract in `docs/API-V1.md`. The Vercel preview for the dependency fix is READY.
