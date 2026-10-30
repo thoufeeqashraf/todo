@@ -45,3 +45,5 @@ Sell P1+P2 first ($210,000 face / $157,500 cash to the developer). Full vision f
 ## Still open
 
 See section 13 of `DEVELOPMENT-BRIEF.md` and the open list in `DECISIONS.md`. The web stack is Next.js. The mobile toolkit is still open. Each company chooses `za`, `eu`, or `multi` as its data region.
+
+Repo-shaped docs, written from the code on 30 Oct 2026: `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN-SYSTEM.md`, `docs/RUNBOOK.md`, `docs/ROADMAP.md`. If one of those disagrees with this brief or with `DEVELOPMENT-BRIEF.md`, the development brief wins.
