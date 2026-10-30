@@ -1,7 +1,7 @@
-import { redirect } from 'next/navigation';
+import { SchedulingScreen } from './screen';
 
 export const instant = false;
 
 export default function SchedulingPage() {
-  redirect('/customer/module/scheduling');
+  return <SchedulingScreen />;
 }
