@@ -11,6 +11,18 @@ Counts on 30 Oct 2026, this window only: **7 done**, **1 in progress**, **11 pen
 
 Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window.
 
+Console screens added the same day, still outside the checkboxes. The shell should link `src/components/modules/nav.ts`. The sidebar file was left for the shell owner.
+
+| Route | Module gate | Tables |
+| --- | --- | --- |
+| `/customer/incidents` | `incidents` | `incidents` |
+| `/customer/attendance` | `geofence_attendance` | `attendance`, `geofences`, `travel_exceptions` |
+| `/customer/health` | `staff_health` | `staff_health_events` |
+| `/customer/find-my-staff` | `find_my_staff` | `staff_locations`, and `geofences` when geofence attendance is also on |
+| `/customer/wallet` | `wallet` | `wallet_accounts`, `wallet_entries` |
+| `/customer/pos` | `pos` | `pos_orders` |
+| `/customer/cctv` | `cctv` | `cameras` |
+
 ## Done
 
 - [x] Project memory, Cursor rules, and shadcn as the web UI library

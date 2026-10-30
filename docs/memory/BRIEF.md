@@ -38,6 +38,8 @@ Shared core loop: assign, due time, checklist, proof, manager visibility.
 | P5 POS QR ordering | After this window. Re-quote. |
 | P6 CCTV AI | After this window. Re-quote. |
 
+The customer console has dedicated screens for incidents, geofence attendance, Find My Staff, staff health, wallet, POS, and CCTV. They read company rows when that module is on. Payments, map tiles, and camera streams stay stubs. Those screens do not pull P2–P6 into this window.
+
 Quoted P1 is 3,200 hours. One full-time developer for six months is about 960 hours. The calendar sequences P1. It does not mean the quoted hour totals finish on 30 Apr 2027.
 
 Sell P1+P2 first ($210,000 face / $157,500 cash to the developer). Full vision face is $580,000–$620,000. Face rate is $35/hour. If price is pushed, cut scope, not the rate. Deal context recorded in the brief: 75% cash, 25% ownership, no unpaid AMC after settlement.
