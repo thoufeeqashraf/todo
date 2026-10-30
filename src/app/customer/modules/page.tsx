@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Module {
   id: string;
@@ -14,6 +17,13 @@ interface Module {
   category: string | null;
   is_enabled: boolean;
 }
+
+const labels: Record<string, string> = {
+  core: 'Core',
+  operations: 'Operations',
+  analytics: 'Analytics',
+  system: 'System',
+};
 
 export default function ModulesPage() {
   const [modules, setModules] = useState<Module[]>([]);
@@ -25,9 +35,10 @@ export default function ModulesPage() {
       try {
         const res = await fetch('/api/companies/modules');
         const data = await res.json();
-        if (!ignore) setModules(data);
-      } catch (err) {
-        console.error('Failed to fetch modules:', err);
+        if (!ignore && Array.isArray(data)) setModules(data);
+        if (!ignore && !Array.isArray(data)) toast.error('Modules are not available yet.');
+      } catch {
+        if (!ignore) toast.error('Could not load modules.');
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -38,90 +49,78 @@ export default function ModulesPage() {
     };
   }, []);
 
-  const toggleModule = async (moduleId: string, currentlyEnabled: boolean) => {
-    try {
-      await fetch('/api/companies/modules', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ moduleId, isEnabled: !currentlyEnabled }),
-      });
-      
-      setModules(modules.map(m => 
-        m.id === moduleId ? { ...m, is_enabled: !currentlyEnabled } : m
-      ));
-    } catch (err) {
-      console.error('Failed to toggle module:', err);
+  async function setEnabled(moduleId: string, isEnabled: boolean) {
+    const previous = modules;
+    setModules(modules.map((item) => (item.id === moduleId ? { ...item, is_enabled: isEnabled } : item)));
+    const res = await fetch('/api/companies/modules', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ moduleId, isEnabled }),
+    });
+    if (!res.ok) {
+      setModules(previous);
+      toast.error('Only an admin can change modules, and Supabase has to be configured.');
+      return;
     }
-  };
-
-  const groupedModules = modules.reduce((acc, module) => {
-    const category = module.category || 'other';
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(module);
-    return acc;
-  }, {} as Record<string, Module[]>);
-
-  if (loading) {
-    return <div className="container mx-auto px-6 py-8">Loading...</div>;
+    toast.success(isEnabled ? 'Module on' : 'Module off');
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-6 py-4">
-          <Link href="/customer">
-            <Button variant="ghost" size="sm" className="mb-2">← Back to Dashboard</Button>
-          </Link>
-          <h1 className="text-2xl font-semibold">Module Management</h1>
-          <p className="text-sm text-muted-foreground">
-            Enable or disable features for your company
-          </p>
-        </div>
-      </header>
+  const grouped = modules.reduce<Record<string, Module[]>>((acc, module) => {
+    const category = module.category || 'other';
+    acc[category] = acc[category] ?? [];
+    acc[category].push(module);
+    return acc;
+  }, {});
+  const categories = Object.keys(grouped);
 
-      <main className="container mx-auto px-6 py-8">
-        {Object.entries(groupedModules).map(([category, categoryModules]) => (
-          <div key={category} className="mb-8">
-            <h2 className="text-lg font-semibold mb-4 capitalize">
-              {category === 'core' ? 'Core Features' : 
-               category === 'operations' ? 'Operations' :
-               category === 'analytics' ? 'Analytics & Reports' :
-               category === 'system' ? 'System' : category}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categoryModules.map((module) => (
-                <Card key={module.id} className={module.is_enabled ? 'border-primary' : ''}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1>Modules</h1>
+        <p className="text-sm text-muted-foreground">Turn features on for this company. Defaults came from the industry.</p>
+      </div>
+      {loading ? (
+        <div className="grid gap-3 md:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-28 rounded-xl" />)}
+        </div>
+      ) : categories.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No module catalogue was returned.</p>
+      ) : (
+        <Tabs defaultValue={categories[0]}>
+          <TabsList>
+            {categories.map((category) => (
+              <TabsTrigger key={category} value={category}>{labels[category] ?? category}</TabsTrigger>
+            ))}
+          </TabsList>
+          {categories.map((category) => (
+            <TabsContent key={category} value={category} className="mt-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                {grouped[category].map((module) => (
+                  <Card key={module.id} className="bg-card/80 shadow-sm transition-shadow hover:shadow-md">
+                    <CardHeader className="flex-row items-start justify-between gap-3">
                       <div>
-                        <CardTitle className="text-base">{module.display_name}</CardTitle>
-                        {module.description && (
-                          <CardDescription className="text-xs mt-1">
-                            {module.description}
-                          </CardDescription>
-                        )}
+                        <CardTitle>{module.display_name}</CardTitle>
+                        {module.description && <CardDescription>{module.description}</CardDescription>}
                       </div>
                       <Badge variant={module.is_enabled ? 'default' : 'outline'}>
-                        {module.is_enabled ? 'ON' : 'OFF'}
+                        {module.is_enabled ? 'On' : 'Off'}
                       </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      variant={module.is_enabled ? 'outline' : 'default'}
-                      size="sm"
-                      onClick={() => toggleModule(module.id, module.is_enabled)}
-                      className="w-full"
-                    >
-                      {module.is_enabled ? 'Disable' : 'Enable'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ))}
-      </main>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">{module.name}</span>
+                      <Switch
+                        checked={module.is_enabled}
+                        onCheckedChange={(checked) => void setEnabled(module.id, checked)}
+                        aria-label={`Toggle ${module.display_name}`}
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
     </div>
   );
 }
