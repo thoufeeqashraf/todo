@@ -1,7 +1,7 @@
-import { redirect } from 'next/navigation';
+import { SettingsScreen } from './screen';
 
 export const instant = false;
 
 export default function SettingsPage() {
-  redirect('/customer/module/settings');
+  return <SettingsScreen />;
 }
