@@ -1,6 +1,6 @@
 # Workplace Todo / Business Operations Platform
 
-Development brief and commercial reference, compiled October 2026 from product planning conversations. This file is the canonical upload. If a summary in `BRIEF.md` disagrees with this file, this file wins until the user changes it.
+Development brief and commercial reference, compiled October 2026 from product planning conversations. This file is the canonical upload. If a summary in `BRIEF.md` disagrees with this file, this file wins until the user changes it. Repo-shaped companions (`docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN-SYSTEM.md`, `docs/RUNBOOK.md`, `docs/ROADMAP.md`) describe what the code contains. If they disagree with this file, this file wins.
 
 Commercial model: SaaS, monthly or yearly subscriptions.
 
