@@ -45,3 +45,7 @@ Sell P1+P2 first ($210,000 face / $157,500 cash to the developer). Full vision f
 ## Still open
 
 See section 13 of `DEVELOPMENT-BRIEF.md` and the open list in `DECISIONS.md`. The web stack is Next.js. The mobile toolkit is still open. Each company chooses `za`, `eu`, or `multi` as its data region.
+
+## Help and setup (30 Oct 2026)
+
+`/help` is a public help center. Articles are static data in `src/content/help.ts`, with category filters and a page per slug. Signed-in customers open `/customer/onboarding` for five checks: create a team, invite staff, enable modules, set a geofence, and connect mobile later. The first four are done only when this company already has the matching rows. Mobile stays open. Paths for other screens are exported from `src/components/help/nav.ts`. This does not add a migration and does not move P2–P6 into the current window.

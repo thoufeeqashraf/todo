@@ -7,9 +7,9 @@ Visual plan: the six-month canvas. When a status below changes, update that canv
 
 This window sequences **P1**. Quoted P1 is 3,200 hours. One full-time developer for six months is about 960 hours (6 × 160). April 2027 is not the date those quoted hours are finished.
 
-Counts on 30 Oct 2026, this window only: **7 done**, **1 in progress**, **11 pending**.
+Counts on 30 Oct 2026, this window only: **8 done**, **1 in progress**, **11 pending**.
 
-Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window.
+Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. A public help center lives at `/help` (static articles). Signed-in customers have a setup checklist at `/customer/onboarding` that counts existing teams, invitations, users, enabled modules, and active geofences. Mobile on that list stays open. No new tables.
 
 ## Done
 
@@ -28,6 +28,7 @@ Repo status the same day, outside these checkboxes: customer web and `/api/v1` i
 - [x] Industry selection and per-company module toggles, including industry defaults
 - [ ] Company branding. The console type and sidebar shell are in progress; per-company logos and colours are not.
 - [x] Scaffold the web app with Next.js and shadcn (`npm run dev`)
+- [x] Public help center at `/help` and customer setup checklist at `/customer/onboarding` (static articles, checklist from existing rows, no migration)
 - [ ] Scaffold iOS and Android after the mobile toolkit is chosen
 
 ## January 2027 — Hierarchy and visibility

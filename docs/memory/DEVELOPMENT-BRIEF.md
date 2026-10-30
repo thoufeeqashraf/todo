@@ -338,3 +338,13 @@ GPS tracking, staff scoring, and wallet money movement need POPIA, labour, and p
 - Hosting region: South Africa, EU, or multi-region.
 
 Web UI component library is already decided outside this brief: shadcn, until replaced. That decision does not choose the mobile toolkit.
+
+## 14. Help center and setup checklist (repo, 30 Oct 2026)
+
+This note records what the web app serves. It does not change phase scope, quotes, or the open decisions above.
+
+- `/help` is public. Articles and categories live in `src/content/help.ts`. Each article is `/help/[slug]`. Search filters that file in the browser.
+- `/customer/onboarding` is the signed-in setup checklist: create a team (`teams`), invite staff (`invitations` or a second user), enable modules (`company_modules.is_enabled`), set a geofence (active `geofences`), connect mobile later. Mobile stays open. No phone is stored.
+- `/customer/module/onboarding` remains the older company, industry, region, module, people, and first-task list. It is a different screen.
+- Other UI should import `/help` and `/customer/onboarding` from `src/components/help/nav.ts`.
+- No new table or migration.
