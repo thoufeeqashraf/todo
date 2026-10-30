@@ -20,20 +20,23 @@ export default function ModulesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchModules();
-  }, []);
-
-  const fetchModules = async () => {
-    try {
-      const res = await fetch('/api/companies/modules');
-      const data = await res.json();
-      setModules(data);
-    } catch (err) {
-      console.error('Failed to fetch modules:', err);
-    } finally {
-      setLoading(false);
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await fetch('/api/companies/modules');
+        const data = await res.json();
+        if (!ignore) setModules(data);
+      } catch (err) {
+        console.error('Failed to fetch modules:', err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
     }
-  };
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const toggleModule = async (moduleId: string, currentlyEnabled: boolean) => {
     try {

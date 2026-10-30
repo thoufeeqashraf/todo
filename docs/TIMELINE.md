@@ -7,7 +7,9 @@ Visual plan: the six-month canvas. When a status below changes, update that canv
 
 This window sequences **P1**. Quoted P1 is 3,200 hours. One full-time developer for six months is about 960 hours (6 × 160). April 2027 is not the date those quoted hours are finished.
 
-Counts on 30 Oct 2026, this window only: **5 done**, **1 in progress**, **12 pending**.
+Counts on 30 Oct 2026, this window only: **7 done**, **1 in progress**, **11 pending**.
+
+Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window.
 
 ## Done
 
@@ -22,26 +24,27 @@ Counts on 30 Oct 2026, this window only: **5 done**, **1 in progress**, **12 pen
 
 ## December 2026 — Tenant and shells
 
-- [ ] Multi-tenant auth and company signup
-- [ ] Industry selection, module toggles, and branding
+- [x] Multi-tenant auth and company signup (web customer login, first admin, bearer-token `/api/v1`; Supabase migrations required; `/login` stays the dev operator gate)
+- [x] Industry selection and per-company module toggles, including industry defaults
+- [ ] Company branding
 - [x] Scaffold the web app with Next.js and shadcn (`npm run dev`)
 - [ ] Scaffold iOS and Android after the mobile toolkit is chosen
 
 ## January 2027 — Hierarchy and visibility
 
-- [ ] Departments, roles, and hierarchy (up to about 10 levels)
+- [ ] Departments, roles, and hierarchy (up to about 10 levels). Departments and admin/manager/user exist; the ten-level visibility rules are not finished.
 - [ ] Visibility middleware: higher levels see lower levels; lower levels see their own work
 
 ## February 2027 — Tasks and proof
 
-- [ ] Tasks, downward assignment, deadlines, and checklists
+- [ ] Tasks, downward assignment, deadlines, and checklists. Basic task create/list and assignment rules exist. Checklists and proof media do not.
 - [ ] Comments, photo proof, and video proof
 
 ## March 2027 — Dashboards and notifications
 
 - [ ] Doer, assigner, and overseer dashboards
 - [ ] Web console for officials and mobile flows for frontline staff
-- [ ] Notifications
+- [ ] Notifications. In-app rows exist when the module is on. Email and push are not connected.
 
 ## April 2027 — P1 acceptance, then the first P2 slice
 

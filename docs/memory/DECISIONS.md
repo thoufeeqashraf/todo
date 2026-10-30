@@ -4,6 +4,8 @@ Locked choices. Newest first. Change a row only when the user replaces the decis
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 30 Oct 2026 | Company hosting region is a per-company setting: `za` (South Africa), `eu`, or `multi`. It is chosen at signup and can be changed in company settings. A single deployment region is not locked. | Active |
+| 30 Oct 2026 | The web app is the source of truth for a future mobile client. Customer rules run on the server. `/api/v1` uses a bearer token. `GET /api/v1/bootstrap` returns that company's config. No mobile app is scaffolded. | Active |
 | 30 Oct 2026 | One web platform, two logins. Admin and staff use the operator entrance to control the mobile app customers use and to manage the platform. Customers use a separate login on the same web to run their own business. Doer, assigner, and overseer stay on the customer side. The current `/login` route is the operator gate only. | Active |
 | 30 Oct 2026 | Development-only operator gate at `/login`. Any username and any password signs in. The form chooses Admin or Staff and opens that role’s `/dashboard`. Hard-off when `NODE_ENV` is `production`. Delete `src/lib/dev-admin-login.ts` and this open sign-in before go-live. | Active |
 | 30 Oct 2026 | Web app is Next.js App Router, TypeScript, Tailwind, and shadcn. Run it with `npm run dev`. | Active |
@@ -26,8 +28,8 @@ Resolve these before the code they block. Suggested defaults are hints from the 
 
 - Product name
 - Stack: web framework, mobile toolkit (React Native or Flutter are examples only), shared-code approach
-- Hosting region: South Africa, EU, or multi-region
-- v1 industry packs. Suggested: restaurant, retail, property, construction
+- Single deployment region, if one is required later. Company data region is already `za`, `eu`, or `multi`.
+- v1 industry packs. The signup catalogue is configuration data and includes the four suggested markets plus other industries. Which packs are commercially in v1 is still open.
 - Hierarchy depth cap and default role names per industry
 - Default escalation recipient per v1 industry
 - Staff health v1 weights (needed for P2, not for starting P1)

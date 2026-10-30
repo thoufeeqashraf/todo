@@ -15,3 +15,8 @@ Append a short entry when a meaningful piece of work lands. Do not log speculati
 - Added a temporary admin login at `/login`. Any username and password opens `/admin`. This is not the December multi-tenant auth work.
 - Moved that development sign-in onto `/dashboard` as admin, and turned the gate off when `NODE_ENV` is production so it cannot stay on at go-live.
 - Built the operator dashboard at `/dashboard` for admin and staff. Development sign-in chooses the role. The companies shown are a preview, and the gate stays off in production.
+- Added customer signup, customer login, industry catalogue, module toggles, and a company dashboard on the web. Customer sessions are bearer tokens stored in an httpOnly cookie and checked against the database. `/login` is still the development operator gate.
+- Added `/api/v1` for a future mobile client, including `GET /api/v1/health` and `GET /api/v1/bootstrap`. Web screens call the same server rules.
+- Tasks, staff invitations, departments, shifts, incidents, geofence clock-in, staff-health events, notifications, audit, reports, and onboarding checklist have server paths. They need the Supabase migrations and do nothing until those keys are set.
+- Wallet top-up, POS payment, CCTV streams, map tiles, email, and mini-app partners are stubs. They do not move money, open a stream, or send mail.
+- Proof photos and video, ten-level visibility, AI roster, AI staff health, and mobile apps are not built.

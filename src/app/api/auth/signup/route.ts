@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '@/lib/supabase';
 import { hashPassword, generateSlug, validateEmail, validatePassword } from '@/lib/auth-utils';
+import { writeAudit } from '@/lib/services/tenant';
 
 const signupSchema = z.object({
   companyName: z.string().min(2).max(255),
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
       .from('users')
       .insert({
         company_id: company.id,
-        email: data.email,
+        email: data.email.toLowerCase(),
         password_hash: passwordHash,
         first_name: data.firstName,
         last_name: data.lastName,
@@ -136,6 +137,14 @@ export async function POST(request: NextRequest) {
         await supabaseAdmin.from('company_modules').insert(companyModules);
       }
     }
+
+    await writeAudit(
+      { userId: user.id, companyId: company.id },
+      'company.created',
+      'company',
+      company.id,
+      { industryId: data.industryId, region: data.region },
+    );
 
     return NextResponse.json(
       {

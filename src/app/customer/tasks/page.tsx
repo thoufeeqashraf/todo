@@ -27,6 +27,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [refreshKey, setRefreshKey] = useState(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -36,26 +37,28 @@ export default function TasksPage() {
   });
 
   useEffect(() => {
-    fetchTasks();
-  }, [filter]);
-
-  const fetchTasks = async () => {
-    try {
-      const url = filter === 'my-tasks'
-        ? '/api/tasks?assigned_to_me=true'
-        : filter !== 'all'
-        ? `/api/tasks?status=${filter}`
-        : '/api/tasks';
-      
-      const res = await fetch(url);
-      const data = await res.json();
-      setTasks(data);
-    } catch (err) {
-      console.error('Failed to fetch tasks:', err);
-    } finally {
-      setLoading(false);
+    let ignore = false;
+    async function load() {
+      try {
+        const url = filter === 'my-tasks'
+          ? '/api/tasks?assigned_to_me=true'
+          : filter !== 'all'
+          ? `/api/tasks?status=${filter}`
+          : '/api/tasks';
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!ignore) setTasks(data);
+      } catch (err) {
+        console.error('Failed to fetch tasks:', err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
     }
-  };
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, [filter, refreshKey]);
 
   const createTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +72,7 @@ export default function TasksPage() {
       if (res.ok) {
         setShowCreateForm(false);
         setFormData({ title: '', description: '', priority: 'medium', due_date: '' });
-        fetchTasks();
+        setRefreshKey((value) => value + 1);
       }
     } catch (err) {
       console.error('Failed to create task:', err);

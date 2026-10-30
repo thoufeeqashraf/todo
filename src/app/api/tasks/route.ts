@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCustomerSession } from '@/lib/customer-session';
 import { supabaseAdmin } from '@/lib/supabase';
 import { z } from 'zod';
+import { PlatformError } from '@/lib/platform-error';
+import { canAssignToOthers, canSeeCompanyTasks } from '@/lib/platform-rules';
+import { assertModule, writeAudit } from '@/lib/services/tenant';
 
 const createTaskSchema = z.object({
   title: z.string().min(1).max(255),
@@ -15,6 +18,13 @@ const createTaskSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await requireCustomerSession();
+    const actor = {
+      userId: session.user.id,
+      companyId: session.companyId,
+      role: session.user.role,
+      email: session.user.email,
+    };
+    await assertModule(actor, 'tasks');
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const assignedToMe = searchParams.get('assigned_to_me') === 'true';
@@ -33,8 +43,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status);
     }
 
-    if (assignedToMe) {
-      query = query.eq('assigned_to_id', session.user.id);
+    if (assignedToMe || !canSeeCompanyTasks(actor.role)) {
+      query = query.or(`assigned_to_id.eq.${actor.userId},assigned_by_id.eq.${actor.userId}`);
     }
 
     const { data, error } = await query;
@@ -50,6 +60,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('Get tasks error:', error);
+    if (error instanceof PlatformError) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
+    }
     return NextResponse.json(
       { error: 'Not authenticated' },
       { status: 401 }
@@ -60,8 +73,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await requireCustomerSession();
+    const actor = {
+      userId: session.user.id,
+      companyId: session.companyId,
+      role: session.user.role,
+      email: session.user.email,
+    };
+    await assertModule(actor, 'tasks');
     const body = await request.json();
     const data = createTaskSchema.parse(body);
+    if (data.assigned_to_id && data.assigned_to_id !== actor.userId && !canAssignToOthers(actor.role)) {
+      return NextResponse.json({ error: 'Floor staff can only keep tasks on their own list.' }, { status: 403 });
+    }
 
     const { data: task, error } = await supabaseAdmin
       .from('tasks')
@@ -82,6 +105,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    await writeAudit(actor, 'task.created', 'task', task.id, { title: data.title });
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
     console.error('Create task error:', error);
@@ -90,6 +114,9 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid input data', details: error.issues },
         { status: 400 }
       );
+    }
+    if (error instanceof PlatformError) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
     }
     return NextResponse.json(
       { error: 'Internal server error' },
