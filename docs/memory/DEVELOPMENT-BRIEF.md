@@ -315,6 +315,8 @@ Rules first, AI second. Fully dynamic assignment is later than the rules engine.
 
 GPS tracking, staff scoring, and wallet money movement need POPIA, labour, and payments legal review in South Africa.
 
+The web app has a Playwright smoke (landing, signup, customer login, unauthenticated `/customer` redirect) that runs on a local production build with no Supabase keys. That smoke is not P1 acceptance. Playwright is a devDependency and does not run during `npm run build`.
+
 ## 12. Quote floor
 
 | Decision | Number |
