@@ -4,6 +4,7 @@ Locked choices. Newest first. Change a row only when the user replaces the decis
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 30 Oct 2026 | The public marketing site and the auth entrances (landing, signup, customer sign-in, operator sign-in, and invite) use the product name ToDo App and a shared logomark. Per-company logos and colours are still not built. The development brief title stays as filed until that file is edited. | Active |
 | 30 Oct 2026 | The development operator cookie is HMAC-signed with `SESSION_SECRET`. The name is documented in `.env.example`. The value is set on Vercel and is never committed. Customer bearer tokens do not use it. A missing secret returns a short form error. | Active |
 | 30 Oct 2026 | Company hosting region is a per-company setting: `za` (South Africa), `eu`, or `multi`. It is chosen at signup and can be changed in company settings. A single deployment region is not locked. | Active |
 | 30 Oct 2026 | The web app is the control plane and single source of truth for a future mobile client. Business rules, permissions, and module enablement run only on the server. Mobile calls `/api/v1` with `Authorization: Bearer`. The browser stores that same token in an httpOnly cookie and does not enforce a second set of rules. `GET /api/v1/bootstrap` returns the tenant's modules, role, and provider status. Shared types live in `src/types` and `src/lib/platform-rules.ts`. The route list is `docs/API-V1.md`. No mobile app is scaffolded. | Active |
@@ -27,7 +28,7 @@ Locked choices. Newest first. Change a row only when the user replaces the decis
 
 Resolve these before the code they block. Suggested defaults are hints from the brief, not locks.
 
-- Product name
+- Product name. Public pages currently say ToDo App. The development brief title is unchanged until that file is edited.
 - Stack: web framework, mobile toolkit (React Native or Flutter are examples only), shared-code approach
 - Single deployment region, if one is required later. Company data region is already `za`, `eu`, or `multi`.
 - v1 industry packs. The signup catalogue is configuration data and includes the four suggested markets plus other industries. Which packs are commercially in v1 is still open.
