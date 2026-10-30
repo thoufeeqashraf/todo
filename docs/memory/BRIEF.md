@@ -58,3 +58,6 @@ Repo-shaped docs, written from the code on 30 Oct 2026: `docs/PRODUCT.md`, `docs
 ## Admin console
 
 Company admins can open `/customer/audit`, `/customer/team`, and `/customer/billing`. Audit and team read that company’s rows. Invites post to `POST /api/v1/invitations`. Billing shows plan, usage, and invoice placeholders and does not charge a card. The route list for the shell is `src/components/admin/nav.ts`.
+## Customer console
+
+`/customer/projects`, `/customer/clients`, and `/customer/notifications` follow the projects, clients, and notifications modules. Projects is a board and list of tasks. Clients has no table yet. Notifications is the signed-in user’s in-app inbox. Email and push are not connected.
