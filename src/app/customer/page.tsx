@@ -26,7 +26,7 @@ export const instant = false;
 
 const destinations = [
   { href: '/customer/tasks', title: 'Tasks', body: 'Assign work and track deadlines.', icon: ClipboardList },
-  { href: '/customer/module/staff', title: 'Staff', body: 'People, departments, and invite links.', icon: Users },
+  { href: '/customer/staff', title: 'Staff', body: 'People, departments, and invite links.', icon: Users },
   { href: '/customer/module/scheduling', title: 'Scheduling', body: 'Shifts. AI roster fill is not built.', icon: CalendarDays },
   { href: '/customer/module/incidents', title: 'Incidents', body: 'Tickets inside this company.', icon: Shield },
   { href: '/customer/module/attendance', title: 'Attendance', body: 'Geofence clock-in and travel days.', icon: MapPin },

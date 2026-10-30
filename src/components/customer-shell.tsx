@@ -66,7 +66,7 @@ const groups: { label: string; items: NavItem[] }[] = [
   {
     label: 'People',
     items: [
-      { href: '/customer/module/staff', label: 'Staff', icon: Users },
+      { href: '/customer/staff', label: 'Staff', icon: Users },
       { href: '/customer/module/attendance', label: 'Attendance', icon: Waypoints },
       { href: '/customer/module/health', label: 'Staff health', icon: HeartPulse },
       { href: '/customer/module/find', label: 'Find My Staff', icon: MapPin },

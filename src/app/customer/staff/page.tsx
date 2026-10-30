@@ -1,7 +1,7 @@
-import { redirect } from 'next/navigation';
+import { StaffScreen } from './screen';
 
 export const instant = false;
 
 export default function StaffPage() {
-  redirect('/customer/module/staff');
+  return <StaffScreen />;
 }
