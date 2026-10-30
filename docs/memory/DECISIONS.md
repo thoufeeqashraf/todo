@@ -4,6 +4,7 @@ Locked choices. Newest first. Change a row only when the user replaces the decis
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 30 Oct 2026 | Tenant tables and the public catalogues use row level security. Policies deny `anon` and `authenticated`. The service role stays the only app data path and is not forced through those policies. Demo seed rows belong only to company slug `demo-kitchen`. If that slug is already a non-demo company, the seed stops. | Active |
 | 30 Oct 2026 | Product, architecture, design system, runbook, and roadmap live in `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN-SYSTEM.md`, `docs/RUNBOOK.md`, and `docs/ROADMAP.md`. They describe the repo. `DEVELOPMENT-BRIEF.md` stays canonical if they disagree. | Active |
 | 30 Oct 2026 | The development operator cookie is HMAC-signed with `SESSION_SECRET`. The name is documented in `.env.example`. The value is set on Vercel and is never committed. Customer bearer tokens do not use it. A missing secret returns a short form error. | Active |
 | 30 Oct 2026 | Company hosting region is a per-company setting: `za` (South Africa), `eu`, or `multi`. It is chosen at signup and can be changed in company settings. A single deployment region is not locked. | Active |
