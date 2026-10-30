@@ -17,7 +17,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  type TooltipProps,
 } from 'recharts';
 
 import { analyticsToCsv } from '@/components/analytics/csv';
@@ -46,7 +45,15 @@ const severityColor: Record<string, string> = {
 
 const axisTick = { fill: 'var(--muted-foreground)', fontSize: 11 };
 
-function ChartTip({ active, payload, label }: TooltipProps<number, string>) {
+function ChartTip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ dataKey?: string | number; value?: string | number; name?: string | number }>;
+  label?: string | number;
+}) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg bg-popover px-3 py-2 text-xs shadow-md ring-1 ring-foreground/10">
