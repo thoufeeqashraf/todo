@@ -25,7 +25,20 @@ export function validatePassword(password: string): {
   if (password.length < 8) {
     return { valid: false, message: 'Password must be at least 8 characters' };
   }
+  if (password.length > 200) {
+    return { valid: false, message: 'Password must be at most 200 characters' };
+  }
   return { valid: true };
+}
+
+const MAX_SLUG_ATTEMPTS = 25;
+
+export function slugCandidate(name: string, attempt: number): string | null {
+  if (!Number.isInteger(attempt) || attempt < 0 || attempt >= MAX_SLUG_ATTEMPTS) return null;
+  const base = generateSlug(name).slice(0, 90).replace(/-+$/g, '');
+  if (!base) return null;
+  const slug = attempt === 0 ? base : `${base}-${attempt}`;
+  return slug.length <= 100 ? slug : null;
 }
 
 export function generateSlug(name: string): string {

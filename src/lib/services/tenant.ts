@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 
 import { hashPassword } from '@/lib/auth-utils';
 import { PlatformError } from '@/lib/platform-error';
@@ -24,6 +24,7 @@ import {
   type UserRole,
 } from '@/lib/platform-rules';
 import { pageResult, type PageQuery, type PageResult } from '@/lib/pagination';
+import { bearerStillValid, hashToken, isBearerTokenShape, isForeignCompany, taskVisibilityFilter } from '@/lib/request-guards';
 import { isSupabaseConfigured, supabaseAdmin } from '@/lib/supabase';
 import {
   assertModuleEnabled,
@@ -66,10 +67,6 @@ function fail(error: { message: string; code?: string; details?: string; hint?: 
     hint: error.hint ?? null,
   });
   throw new PlatformError('database', message, 500);
-}
-
-export function hashToken(token: string) {
-  return createHash('sha256').update(token).digest('hex');
 }
 
 export async function enabledModuleNames(companyId: string): Promise<Set<string>> {
@@ -210,6 +207,9 @@ export async function issueToken(userId: string, companyId: string) {
 }
 
 export async function actorFromToken(rawToken: string): Promise<TenantActor> {
+  if (!isBearerTokenShape(rawToken)) {
+    throw new PlatformError('unauthorized', 'Bearer token is missing or expired.', 401);
+  }
   requireConfigured();
   const { data, error } = await supabaseAdmin
     .from('api_tokens')
@@ -218,7 +218,7 @@ export async function actorFromToken(rawToken: string): Promise<TenantActor> {
     .maybeSingle();
   fail(error, 'Could not read the API token.');
   const tokenRow = data as Row | null;
-  if (!tokenRow || new Date(String(tokenRow.expires_at)).getTime() < Date.now()) {
+  if (!tokenRow || !bearerStillValid(tokenRow.expires_at)) {
     throw new PlatformError('unauthorized', 'Bearer token is missing or expired.', 401);
   }
   const userResult = await supabaseAdmin
@@ -343,7 +343,7 @@ function taskQuery(actor: TenantActor, status?: string) {
     .eq('company_id', scope.companyId)
     .order('created_at', { ascending: false });
   if (scope.ownUserId) {
-    query = query.or(`assigned_to_id.eq.${scope.ownUserId},assigned_by_id.eq.${scope.ownUserId}`);
+    query = query.or(taskVisibilityFilter(scope.ownUserId));
   }
   if (status) query = query.eq('status', status);
   return query;
@@ -403,15 +403,30 @@ export async function createTask(
   return task;
 }
 
-async function assertSameCompanyUser(companyId: string, userId: string) {
+export async function assertSameCompanyUser(companyId: string, userId: string) {
   const { data, error } = await supabaseAdmin
     .from('users')
-    .select('id')
+    .select('id, company_id')
     .eq('company_id', companyId)
     .eq('id', userId)
     .maybeSingle();
   fail(error, 'Could not check the user.');
-  if (!data) throw new PlatformError('not_found', 'That person is not in this company.', 404);
+  if (!data || isForeignCompany(companyId, (data as Row).company_id)) {
+    throw new PlatformError('not_found', 'That person is not in this company.', 404);
+  }
+}
+
+export async function assertSameCompanyDepartment(companyId: string, departmentId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('departments')
+    .select('id, company_id')
+    .eq('company_id', companyId)
+    .eq('id', departmentId)
+    .maybeSingle();
+  fail(error, 'Could not check the department.');
+  if (!data || isForeignCompany(companyId, (data as Row).company_id)) {
+    throw new PlatformError('not_found', 'That department is not in this company.', 404);
+  }
 }
 
 export async function listUsers(actor: TenantActor) {
@@ -441,6 +456,7 @@ export async function createDepartment(actor: TenantActor, name: string, parentI
   if (!canManagePeople(actor.role)) {
     throw new PlatformError('forbidden', 'Only a manager or admin can add a department.', 403);
   }
+  if (parentId) await assertSameCompanyDepartment(actor.companyId, parentId);
   const { data, error } = await supabaseAdmin
     .from('departments')
     .insert({ company_id: actor.companyId, name, parent_id: parentId || null })

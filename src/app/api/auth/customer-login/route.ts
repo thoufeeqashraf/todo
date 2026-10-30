@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCustomerSession, setCustomerToken } from '@/lib/customer-session';
-import { PlatformError } from '@/lib/platform-error';
+import { jsonFromError } from '@/lib/json-error';
+import { enforceAuthLogin, readJson } from '@/lib/request-guards';
 import { loginWithPassword } from '@/lib/services/tenant';
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-  companySlug: z.string().min(1).optional(),
+  email: z.string().email().max(255),
+  password: z.string().min(1).max(200),
+  companySlug: z.string().min(1).max(100).optional(),
 });
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    enforceAuthLogin(request);
+    const body = await readJson(request);
     const data = loginSchema.parse(body);
     const issued = await loginWithPassword(data.email, data.password, data.companySlug);
     await setCustomerToken(issued.token);
@@ -30,19 +32,6 @@ export async function POST(request: NextRequest) {
         : null,
     });
   } catch (error) {
-    console.error('Login error:', error);
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input data' },
-        { status: 400 }
-      );
-    }
-    if (error instanceof PlatformError) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
-    }
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return jsonFromError(error, 'Login error');
   }
 }

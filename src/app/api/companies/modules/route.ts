@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCustomerSession } from '@/lib/customer-session';
 import { supabaseAdmin } from '@/lib/supabase';
 import { z } from 'zod';
+import { jsonFromError } from '@/lib/json-error';
+import { readJson } from '@/lib/request-guards';
 import { writeAudit } from '@/lib/services/tenant';
 
 export async function GET() {
@@ -49,11 +51,7 @@ export async function GET() {
 
     return NextResponse.json(modulesWithStatus);
   } catch (error) {
-    console.error('Get modules error:', error);
-    return NextResponse.json(
-      { error: 'Not authenticated' },
-      { status: 401 }
-    );
+    return jsonFromError(error, 'Get modules error');
   }
 }
 
@@ -74,7 +72,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    const body = await readJson(request);
     const data = updateModuleSchema.parse(body);
 
     // Check if module exists
@@ -121,16 +119,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Update module error:', error);
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input data' },
-        { status: 400 }
-      );
-    }
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return jsonFromError(error, 'Update module error');
   }
 }
