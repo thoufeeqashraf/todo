@@ -20,6 +20,7 @@ Commercial model: monthly or yearly subscriptions. Target scale about 100,000 us
 - Optional modules are off unless the company turns them on. Example: AI duty roster.
 - Wallet money movement uses the Transaction Junction API. Do not build a payment gateway.
 - GPS, staff scoring, and wallet flows need South African POPIA, labour, and payments review before they ship.
+- The app reads and writes Supabase with the service role. Row level security denies the anon key. Sample data lives on company slug `demo-kitchen`, not on a real company. See `docs/DATABASE.md`.
 
 ## First markets
 
@@ -42,6 +43,16 @@ Quoted P1 is 3,200 hours. One full-time developer for six months is about 960 ho
 
 Sell P1+P2 first ($210,000 face / $157,500 cash to the developer). Full vision face is $580,000–$620,000. Face rate is $35/hour. If price is pushed, cut scope, not the rate. Deal context recorded in the brief: 75% cash, 25% ownership, no unpaid AMC after settlement.
 
+## Verification
+
+GitHub Actions runs lint, typecheck, the unit tests, `npm run build`, and a Playwright smoke against that production server. The smoke checks the landing page, signup, customer login, and that an unauthenticated visit to `/customer` goes to customer login. It does not need Supabase keys. Playwright is a devDependency and does not run during `npm run build`.
+
 ## Still open
 
 See section 13 of `DEVELOPMENT-BRIEF.md` and the open list in `DECISIONS.md`. The web stack is Next.js. The mobile toolkit is still open. Each company chooses `za`, `eu`, or `multi` as its data region.
+
+Repo-shaped docs, written from the code on 30 Oct 2026: `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN-SYSTEM.md`, `docs/RUNBOOK.md`, `docs/ROADMAP.md`. If one of those disagrees with this brief or with `DEVELOPMENT-BRIEF.md`, the development brief wins.
+
+## Admin console
+
+Company admins can open `/customer/audit`, `/customer/team`, and `/customer/billing`. Audit and team read that company’s rows. Invites post to `POST /api/v1/invitations`. Billing shows plan, usage, and invoice placeholders and does not charge a card. The route list for the shell is `src/components/admin/nav.ts`.

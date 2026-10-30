@@ -1,6 +1,6 @@
 # Workplace Todo / Business Operations Platform
 
-Development brief and commercial reference, compiled October 2026 from product planning conversations. This file is the canonical upload. If a summary in `BRIEF.md` disagrees with this file, this file wins until the user changes it.
+Development brief and commercial reference, compiled October 2026 from product planning conversations. This file is the canonical upload. If a summary in `BRIEF.md` disagrees with this file, this file wins until the user changes it. Repo-shaped companions (`docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN-SYSTEM.md`, `docs/RUNBOOK.md`, `docs/ROADMAP.md`) describe what the code contains. If they disagree with this file, this file wins.
 
 Commercial model: SaaS, monthly or yearly subscriptions.
 
@@ -88,6 +88,8 @@ Owners, GMs, area and regional managers. Store, site, and branch managers. Shift
 | Customer | Business customers | Separate login. Run their own company on the web: tasks, proof, hierarchy, dashboards |
 
 The current `/login` route is only the temporary operator gate. It is not the customer entrance.
+
+Inside a customer company, admins also have `/customer/audit`, `/customer/team`, and `/customer/billing`. Billing on that screen is a placeholder and is not a payment provider.
 
 ### 4.5 Three primary user types on the customer side
 
@@ -315,6 +317,8 @@ Rules first, AI second. Fully dynamic assignment is later than the rules engine.
 
 GPS tracking, staff scoring, and wallet money movement need POPIA, labour, and payments legal review in South Africa.
 
+The web app has a Playwright smoke (landing, signup, customer login, unauthenticated `/customer` redirect) that runs on a local production build with no Supabase keys. That smoke is not P1 acceptance. Playwright is a devDependency and does not run during `npm run build`.
+
 ## 12. Quote floor
 
 | Decision | Number |
@@ -338,3 +342,5 @@ GPS tracking, staff scoring, and wallet money movement need POPIA, labour, and p
 - Hosting region: South Africa, EU, or multi-region.
 
 Web UI component library is already decided outside this brief: shadcn, until replaced. That decision does not choose the mobile toolkit.
+
+Schema notes for this repo live in `docs/DATABASE.md`. The app uses the Supabase service role. Row level security denies the anon key. Sample rows, when seeded, belong to company slug `demo-kitchen` and are not written onto any other company.
