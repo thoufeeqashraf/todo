@@ -9,7 +9,7 @@ This window sequences **P1**. Quoted P1 is 3,200 hours. One full-time developer 
 
 Counts on 30 Oct 2026, this window only: **7 done**, **1 in progress**, **11 pending**.
 
-Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window.
+Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. Customer analytics at `/customer/analytics` is a reports-module page over existing task, attendance, and incident rows. It is not the March role dashboards.
 
 ## Done
 
@@ -42,7 +42,7 @@ Repo status the same day, outside these checkboxes: customer web and `/api/v1` i
 
 ## March 2027 — Dashboards and notifications
 
-- [ ] Doer, assigner, and overseer dashboards
+- [ ] Doer, assigner, and overseer dashboards. `/customer/analytics` is a separate reports view and does not close this item.
 - [ ] Web console for officials and mobile flows for frontline staff
 - [ ] Notifications. In-app rows exist when the module is on. Email and push are not connected.
 

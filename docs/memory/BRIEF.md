@@ -45,3 +45,7 @@ Sell P1+P2 first ($210,000 face / $157,500 cash to the developer). Full vision f
 ## Still open
 
 See section 13 of `DEVELOPMENT-BRIEF.md` and the open list in `DECISIONS.md`. The web stack is Next.js. The mobile toolkit is still open. Each company chooses `za`, `eu`, or `multi` as its data region.
+
+## On the web (30 Oct 2026)
+
+Customer analytics is `/customer/analytics`. It is available only when the reports module is on. It reads tasks, attendance, and incidents already stored for the signed-in company. It does not add tables. Incident severity is classified from `incidents.status`. The route is exported from `src/components/analytics/nav.ts` for the customer shell.

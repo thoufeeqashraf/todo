@@ -338,3 +338,5 @@ GPS tracking, staff scoring, and wallet money movement need POPIA, labour, and p
 - Hosting region: South Africa, EU, or multi-region.
 
 Web UI component library is already decided outside this brief: shadcn, until replaced. That decision does not choose the mobile toolkit.
+
+Customer analytics at `/customer/analytics` is a reports-module view of existing task, attendance, and incident rows. It does not add tables. Incident severity is classified from `incidents.status` because that table has no severity column.
