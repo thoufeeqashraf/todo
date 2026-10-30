@@ -166,7 +166,9 @@ Few tools cover all of this well for SMBs across industries: who is on shift, wh
 | CCTV AI | Live feed and AI checks | P6 |
 | Platform admin and staff | Operator login. Control the customer mobile app, tenants, and platform configuration. Billing depth follows the commercial phase in force | With the phase that needs it |
 
-Payments: use the Transaction Junction API. Do not build a payment gateway. Still build the wallet ledger, webhooks, reconciliation, QR flows, limits, and admin tools. That work is P4.
+Payments: use the Transaction Junction API for the wallet. Do not build a payment gateway for wallet top-up, P2P, or QR pay. Still build the wallet ledger, webhooks, reconciliation, QR flows, limits, and admin tools. That work is P4.
+
+Company subscription billing (what a company pays for this product) is Stripe Checkout in INR: Starter ₹1,499/month, Growth ₹4,999/month, Scale ₹14,999/month. It is not the wallet and it does not replace Transaction Junction. Setup, keys, and the webhook URL are in `docs/BILLING.md`.
 
 ## 7. Delivery phases
 

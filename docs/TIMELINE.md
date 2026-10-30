@@ -11,6 +11,8 @@ Counts on 30 Oct 2026, this window only: **7 done**, **1 in progress**, **11 pen
 
 Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window.
 
+Company subscription billing is in the repo the same day: migration `005_billing.sql`, INR plans Starter / Growth / Scale, `POST /api/billing/checkout` (company admin), and `POST /api/billing/webhook`. Stripe keys are optional at build time. Checkout returns 503 until they are set. The customer billing screen is unchanged. Wallet money movement is still the Transaction Junction stub.
+
 ## Done
 
 - [x] Project memory, Cursor rules, and shadcn as the web UI library
