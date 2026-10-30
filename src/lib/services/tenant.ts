@@ -44,8 +44,15 @@ function requireConfigured() {
   }
 }
 
-function fail(error: { message: string } | null, message: string): void {
-  if (error) throw new PlatformError('database', message, 500, { reason: error.message });
+function fail(error: { message: string; code?: string; details?: string; hint?: string } | null, message: string): void {
+  if (!error) return;
+  console.error(message, {
+    code: error.code ?? null,
+    message: error.message,
+    details: error.details ?? null,
+    hint: error.hint ?? null,
+  });
+  throw new PlatformError('database', message, 500);
 }
 
 export function hashToken(token: string) {
@@ -225,19 +232,71 @@ export async function actorFromToken(rawToken: string): Promise<TenantActor> {
   };
 }
 
+function companyRecord(value: unknown): Row | null {
+  if (Array.isArray(value)) {
+    const first = value[0];
+    return first && typeof first === 'object' ? (first as Row) : null;
+  }
+  if (value && typeof value === 'object') return value as Row;
+  return null;
+}
+
 export async function loginWithPassword(email: string, password: string, companySlug?: string) {
   requireConfigured();
   const { verifyPassword } = await import('@/lib/auth-utils');
-  const { data, error } = await supabaseAdmin
+  const normalized = email.toLowerCase();
+  const joined = await supabaseAdmin
     .from('users')
-    .select('id, email, password_hash, role, company_id, is_active, companies!inner(id, slug, name)')
-    .eq('email', email.toLowerCase())
+    .select('id, email, password_hash, role, company_id, is_active, companies!users_company_id_fkey!inner(id, slug, name)')
+    .eq('email', normalized)
     .eq('is_active', true);
-  fail(error, 'Could not look up the user.');
+
+  let rows: Row[] = (joined.data ?? []) as Row[];
+  if (joined.error) {
+    console.error('loginWithPassword company join failed', {
+      code: joined.error.code,
+      message: joined.error.message,
+      details: joined.error.details,
+      hint: joined.error.hint,
+    });
+    const plain = await supabaseAdmin
+      .from('users')
+      .select('id, email, password_hash, role, company_id, is_active')
+      .eq('email', normalized)
+      .eq('is_active', true);
+    if (plain.error) {
+      console.error('loginWithPassword user lookup failed', {
+        code: plain.error.code,
+        message: plain.error.message,
+        details: plain.error.details,
+        hint: plain.error.hint,
+      });
+      fail(plain.error, 'Could not look up the user.');
+    }
+    const companyIds = [...new Set((plain.data ?? []).map((row) => String((row as Row).company_id)))];
+    const companies = companyIds.length
+      ? await supabaseAdmin.from('companies').select('id, slug, name').in('id', companyIds)
+      : { data: [] as Row[], error: null };
+    if (companies.error) {
+      console.error('loginWithPassword company lookup failed', {
+        code: companies.error.code,
+        message: companies.error.message,
+        details: companies.error.details,
+        hint: companies.error.hint,
+      });
+      fail(companies.error, 'Could not look up the user.');
+    }
+    const byId = new Map((companies.data ?? []).map((company) => [String((company as Row).id), company as Row]));
+    rows = (plain.data ?? []).map((row) => {
+      const user = row as Row;
+      return { ...user, companies: byId.get(String(user.company_id)) ?? null };
+    });
+  }
+
   const matches: { id: string; companyId: string; slug: string; name: string }[] = [];
-  for (const row of data ?? []) {
-    const user = row as Row;
-    const company = user.companies as Row;
+  for (const user of rows) {
+    const company = companyRecord(user.companies);
+    if (!company?.slug || !company.name) continue;
     const valid = await verifyPassword(password, String(user.password_hash));
     if (!valid) continue;
     matches.push({
