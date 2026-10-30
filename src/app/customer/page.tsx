@@ -16,10 +16,11 @@ import {
   Wallet,
 } from 'lucide-react';
 
+import { ConfigNotice } from '@/components/config-notice';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getCustomerSession } from '@/lib/customer-session';
-import { supabaseAdmin } from '@/lib/supabase';
+import { isSupabaseConfigured, supabaseAdmin } from '@/lib/supabase';
 
 export const instant = false;
 
@@ -43,17 +44,47 @@ export default async function CustomerDashboardPage() {
   const session = await getCustomerSession();
   if (!session) redirect('/customer-login');
 
-  const { data: company } = await supabaseAdmin
-    .from('companies')
-    .select('name, region, industries(display_name)')
-    .eq('id', session.companyId)
-    .maybeSingle();
+  if (!isSupabaseConfigured()) {
+    return (
+      <ConfigNotice
+        title="Database is not configured"
+        body="Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY, then apply migrations 001–003."
+      />
+    );
+  }
 
-  const { data: enabledModules } = await supabaseAdmin
-    .from('company_modules')
-    .select('id')
-    .eq('company_id', session.companyId)
-    .eq('is_enabled', true);
+  let company: unknown = null;
+  let enabledCount = 0;
+  let unavailable = false;
+  try {
+    const companyResult = await supabaseAdmin
+      .from('companies')
+      .select('name, region, industries(display_name)')
+      .eq('id', session.companyId)
+      .maybeSingle();
+    const moduleResult = await supabaseAdmin
+      .from('company_modules')
+      .select('id')
+      .eq('company_id', session.companyId)
+      .eq('is_enabled', true);
+    if (companyResult.error || moduleResult.error) {
+      unavailable = true;
+    } else {
+      company = companyResult.data;
+      enabledCount = moduleResult.data?.length ?? 0;
+    }
+  } catch {
+    unavailable = true;
+  }
+
+  if (unavailable) {
+    return (
+      <ConfigNotice
+        title="Company data is unavailable"
+        body="The database did not return this company. Apply migrations 001–003 and confirm the service role key."
+      />
+    );
+  }
 
   const row = company as { name?: string; region?: string; industries?: { display_name?: string } | { display_name?: string }[] | null } | null;
   const industries = row?.industries;
@@ -77,7 +108,7 @@ export default async function CustomerDashboardPage() {
         <Card className="bg-card/80 shadow-sm">
           <CardHeader>
             <CardDescription>Modules on</CardDescription>
-            <CardTitle className="font-numeric text-3xl">{enabledModules?.length ?? 0}</CardTitle>
+            <CardTitle className="font-numeric text-3xl">{enabledCount}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="bg-card/80 shadow-sm">

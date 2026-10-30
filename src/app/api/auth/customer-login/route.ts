@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
     if (error instanceof PlatformError) {
-      return NextResponse.json({ error: error.message, code: error.code, ...error.details }, { status: error.status });
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
     }
     return NextResponse.json(
       { error: 'Internal server error' },

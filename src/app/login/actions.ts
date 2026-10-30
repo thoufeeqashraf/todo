@@ -34,7 +34,18 @@ export async function signIn(
 
   const role: OperatorRole =
     formData.get("role") === "staff" ? "staff" : "admin";
-  await createSession(username, role);
+  try {
+    await createSession(username, role);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("SESSION_SECRET")) {
+      return { error: "Operator sign-in is not configured. Set SESSION_SECRET." };
+    }
+    if (message.includes("disabled in production")) {
+      return { error: "Sign-in is closed on the live site." };
+    }
+    return { error: "Sign-in could not start." };
+  }
   redirect("/dashboard");
 }
 

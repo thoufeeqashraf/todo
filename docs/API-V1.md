@@ -12,7 +12,7 @@ If the email and password match more than one company, the response is HTTP 409 
 
 The browser login at `/api/auth/customer-login` issues the same kind of token and stores it in the httpOnly `customer_session` cookie. Mobile must not rely on that cookie.
 
-`/login` is the development operator gate. It is not this API.
+`/login` is the development operator gate. It is not this API. Its cookie is an HMAC signed with `SESSION_SECRET` (set on Vercel; placeholder only in `.env.example`). Customer bearer tokens do not use that secret. If `SESSION_SECRET` is missing, the sign-in form shows a short message and does not print a stack trace.
 
 ## Bootstrap
 

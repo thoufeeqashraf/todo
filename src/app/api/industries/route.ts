@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { isSupabaseConfigured, supabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json(
+      { error: 'Database is not configured. Set the Supabase URL, anon key, and service role, then apply migrations 001–003.' },
+      { status: 503 },
+    );
+  }
+
   try {
     const { data, error } = await supabaseAdmin
       .from('industries')
