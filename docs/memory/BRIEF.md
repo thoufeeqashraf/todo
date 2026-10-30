@@ -20,6 +20,7 @@ Commercial model: monthly or yearly subscriptions. Target scale about 100,000 us
 - Optional modules are off unless the company turns them on. Example: AI duty roster.
 - Wallet money movement uses the Transaction Junction API. Do not build a payment gateway.
 - GPS, staff scoring, and wallet flows need South African POPIA, labour, and payments review before they ship.
+- The app reads and writes Supabase with the service role. Row level security denies the anon key. Sample data lives on company slug `demo-kitchen`, not on a real company. See `docs/DATABASE.md`.
 
 ## First markets
 

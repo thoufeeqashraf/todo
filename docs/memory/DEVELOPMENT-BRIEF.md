@@ -338,3 +338,5 @@ GPS tracking, staff scoring, and wallet money movement need POPIA, labour, and p
 - Hosting region: South Africa, EU, or multi-region.
 
 Web UI component library is already decided outside this brief: shadcn, until replaced. That decision does not choose the mobile toolkit.
+
+Schema notes for this repo live in `docs/DATABASE.md`. The app uses the Supabase service role. Row level security denies the anon key. Sample rows, when seeded, belong to company slug `demo-kitchen` and are not written onto any other company.
