@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(data ?? []);
   } catch (error) {
     return jsonFromError(error, 'Get tasks error');
   }
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error) {
+    if (error || !task || typeof task !== 'object' || !('id' in task) || !task.id) {
       console.error('Task creation error');
       return NextResponse.json(
         { error: 'Failed to create task' },

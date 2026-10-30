@@ -5,7 +5,7 @@ import { PlatformError } from '@/lib/platform-error';
 import { CUSTOMER_SESSION_COOKIE } from '@/lib/request-guards';
 import { actorFromToken } from '@/lib/services/tenant';
 import { supabaseAdmin } from '@/lib/supabase';
-import { User } from '@/types';
+import type { User } from '@/types';
 
 const SESSION_COOKIE_NAME = CUSTOMER_SESSION_COOKIE;
 
