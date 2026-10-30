@@ -9,7 +9,7 @@ This window sequences **P1**. Quoted P1 is 3,200 hours. One full-time developer 
 
 Counts on 30 Oct 2026, this window only: **7 done**, **1 in progress**, **11 pending**.
 
-Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window.
+Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. The customer console also has module-gated `/customer/projects` (task board and list), `/customer/clients` (directory; no clients table), and `/customer/notifications` (in-app inbox).
 
 ## Done
 
@@ -37,14 +37,14 @@ Repo status the same day, outside these checkboxes: customer web and `/api/v1` i
 
 ## February 2027 — Tasks and proof
 
-- [ ] Tasks, downward assignment, deadlines, and checklists. Basic task create/list and assignment rules exist. Checklists and proof media do not.
+- [ ] Tasks, downward assignment, deadlines, and checklists. Basic task create/list and assignment rules exist. `/customer/projects` shows those tasks as a board and a list. Checklists and proof media do not.
 - [ ] Comments, photo proof, and video proof
 
 ## March 2027 — Dashboards and notifications
 
 - [ ] Doer, assigner, and overseer dashboards
 - [ ] Web console for officials and mobile flows for frontline staff
-- [ ] Notifications. In-app rows exist when the module is on. Email and push are not connected.
+- [ ] Notifications. In-app rows exist when the module is on. `/customer/notifications` is the inbox, with unread state and filters. Email and push are not connected.
 
 ## April 2027 — P1 acceptance, then the first P2 slice
 

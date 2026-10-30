@@ -168,6 +168,8 @@ Few tools cover all of this well for SMBs across industries: who is on shift, wh
 
 Payments: use the Transaction Junction API. Do not build a payment gateway. Still build the wallet ledger, webhooks, reconciliation, QR flows, limits, and admin tools. That work is P4.
 
+Customer web routes for the catalogue modules `projects`, `clients`, and `notifications` are `/customer/projects`, `/customer/clients`, and `/customer/notifications`. Each one stays closed unless that module is on. The projects screen is a board and a list of tasks, with departments as project names. There is no projects table and no clients table. Client accounts are stored on the clients module settings until a table exists. The notifications screen lists in-app rows for the signed-in user. Email and push are not connected.
+
 ## 7. Delivery phases
 
 | Phase | Included |

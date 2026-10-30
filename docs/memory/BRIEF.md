@@ -45,3 +45,7 @@ Sell P1+P2 first ($210,000 face / $157,500 cash to the developer). Full vision f
 ## Still open
 
 See section 13 of `DEVELOPMENT-BRIEF.md` and the open list in `DECISIONS.md`. The web stack is Next.js. The mobile toolkit is still open. Each company chooses `za`, `eu`, or `multi` as its data region.
+
+## Customer console
+
+`/customer/projects`, `/customer/clients`, and `/customer/notifications` follow the projects, clients, and notifications modules. Projects is a board and list of tasks. Clients has no table yet. Notifications is the signed-in user’s in-app inbox. Email and push are not connected.
