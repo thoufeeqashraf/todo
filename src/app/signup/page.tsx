@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Industry {
   id: string;
@@ -14,13 +18,19 @@ interface Industry {
   description: string;
 }
 
+const regions = [
+  { id: 'za', label: 'South Africa', detail: 'Default for the first markets' },
+  { id: 'eu', label: 'Europe', detail: 'Company data stays in the EU setting' },
+  { id: 'multi', label: 'Multi-region', detail: 'More than one hosting region' },
+];
+
 export default function SignupPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [industries, setIndustries] = useState<Industry[]>([]);
-
+  const [loadingIndustries, setLoadingIndustries] = useState(true);
   const [formData, setFormData] = useState({
     companyName: '',
     industryId: '',
@@ -33,33 +43,40 @@ export default function SignupPage() {
   });
 
   useEffect(() => {
+    let ignore = false;
     fetch('/api/industries')
-      .then(res => res.json())
-      .then(data => setIndustries(data))
-      .catch(err => console.error('Failed to load industries:', err));
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore && Array.isArray(data)) setIndustries(data);
+      })
+      .catch(() => {
+        if (!ignore) toast.error('Industries could not be loaded.');
+      })
+      .finally(() => {
+        if (!ignore) setLoadingIndustries(false);
+      });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     if (step === 1) {
       if (!formData.companyName || !formData.industryId || !formData.region) {
-        setError('Please fill in all company details');
+        setError('Add a company name and choose an industry.');
         return;
       }
       setStep(2);
       setError('');
       return;
     }
-
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Passwords do not match.');
       return;
     }
-
     setLoading(true);
     setError('');
-
     try {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -74,170 +91,140 @@ export default function SignupPage() {
           password: formData.password,
         }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Signup failed');
-      }
-
+      if (!res.ok) throw new Error(data.error || 'Signup failed');
+      toast.success('Company created. Sign in with the admin you just added.');
       router.push('/customer-login?registered=true');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Signup failed');
+      const message = err instanceof Error ? err.message : 'Signup failed';
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-16">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create your company account</CardTitle>
-          <CardDescription>
-            Step {step} of 2: {step === 1 ? 'Company details' : 'Your details'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {step === 1 ? (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="companyName">Company Name</Label>
-                  <Input
-                    id="companyName"
-                    value={formData.companyName}
-                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="industryId">Industry</Label>
-                  <select
-                    id="industryId"
-                    value={formData.industryId}
-                    onChange={(e) => setFormData({ ...formData, industryId: e.target.value })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    required
-                  >
-                    <option value="">Select your industry</option>
-                    {industries.map((industry) => (
-                      <option key={industry.id} value={industry.id}>
-                        {industry.display_name}
-                      </option>
+    <div className="app-canvas min-h-svh">
+      <header className="glass sticky top-0 z-20 border-b">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-6">
+          <Link href="/" className="text-sm font-semibold tracking-tight">Workplace</Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link href="/customer-login"><Button variant="ghost" size="sm">Sign in</Button></Link>
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto w-full max-w-5xl px-6 py-12">
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Step {step} of 2</p>
+            <h1>{step === 1 ? 'Create the company' : 'Add the first admin'}</h1>
+          </div>
+          <div className="font-numeric text-sm text-muted-foreground">{step === 1 ? '01' : '02'}</div>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {step === 1 ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company name</Label>
+                <Input
+                  id="companyName"
+                  className="h-10 max-w-md bg-card"
+                  value={formData.companyName}
+                  onChange={(event) => setFormData({ ...formData, companyName: event.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-3">
+                <Label>Industry</Label>
+                {loadingIndustries ? (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <Skeleton key={index} className="h-24 rounded-xl" />
                     ))}
-                  </select>
-                  {formData.industryId && (
-                    <p className="text-xs text-muted-foreground">
-                      {industries.find(i => i.id === formData.industryId)?.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="region">Region</Label>
-                  <select
-                    id="region"
-                    value={formData.region}
-                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    required
-                  >
-                    <option value="za">South Africa</option>
-                    <option value="eu">Europe</option>
-                    <option value="multi">Multi-region</option>
-                  </select>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                      id="firstName"
-                      value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      required
-                    />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      required
-                    />
+                ) : industries.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No industries are available until the database is configured.</p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {industries.map((industry) => {
+                      const selected = formData.industryId === industry.id;
+                      return (
+                        <button
+                          key={industry.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, industryId: industry.id })}
+                          className={`rounded-xl bg-card/80 p-4 text-left shadow-sm ring-1 transition-all hover:-translate-y-0.5 hover:shadow-md ${selected ? 'ring-primary' : 'ring-foreground/10'}`}
+                        >
+                          <p className="text-sm font-medium tracking-tight">{industry.display_name}</p>
+                          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{industry.description}</p>
+                        </button>
+                      );
+                    })}
                   </div>
+                )}
+              </div>
+              <div className="space-y-3">
+                <Label>Region</Label>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {regions.map((region) => {
+                    const selected = formData.region === region.id;
+                    return (
+                      <button
+                        key={region.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, region: region.id })}
+                        className={`rounded-xl bg-card/80 p-4 text-left ring-1 transition-colors ${selected ? 'ring-primary' : 'ring-foreground/10'}`}
+                      >
+                        <p className="text-sm font-medium">{region.label}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{region.detail}</p>
+                      </button>
+                    );
+                  })}
                 </div>
-
+              </div>
+            </>
+          ) : (
+            <Card className="max-w-xl bg-card/80">
+              <CardHeader>
+                <CardTitle>Admin account</CardTitle>
+                <CardDescription>This person can invite the rest of the company.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
+                  <Label htmlFor="firstName">First name</Label>
+                  <Input id="firstName" value={formData.firstName} onChange={(event) => setFormData({ ...formData, firstName: event.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last name</Label>
+                  <Input id="lastName" value={formData.lastName} onChange={(event) => setFormData({ ...formData, lastName: event.target.value })} required />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
+                  <Input id="email" type="email" value={formData.email} onChange={(event) => setFormData({ ...formData, email: event.target.value })} required />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                  />
+                  <Input id="password" type="password" value={formData.password} onChange={(event) => setFormData({ ...formData, password: event.target.value })} required />
                   <p className="text-xs text-muted-foreground">At least 8 characters</p>
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    required
-                  />
+                  <Label htmlFor="confirmPassword">Confirm password</Label>
+                  <Input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={(event) => setFormData({ ...formData, confirmPassword: event.target.value })} required />
                 </div>
-              </>
+              </CardContent>
+            </Card>
+          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <div className="flex gap-3">
+            {step === 2 && (
+              <Button type="button" variant="outline" onClick={() => setStep(1)} disabled={loading}>Back</Button>
             )}
-
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
-
-            <div className="flex gap-4">
-              {step === 2 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setStep(1)}
-                  disabled={loading}
-                >
-                  Back
-                </Button>
-              )}
-              <Button type="submit" disabled={loading} className="flex-1">
-                {loading ? 'Processing...' : step === 1 ? 'Next' : 'Create Account'}
-              </Button>
-            </div>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <Link href="/customer-login" className="text-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </form>
-        </CardContent>
-      </Card>
-    </main>
+            <Button type="submit" disabled={loading}>{loading ? 'Creating…' : step === 1 ? 'Continue' : 'Create company'}</Button>
+          </div>
+        </form>
+      </main>
+    </div>
   );
 }
