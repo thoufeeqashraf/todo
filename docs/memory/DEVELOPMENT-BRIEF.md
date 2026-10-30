@@ -2,6 +2,8 @@
 
 Development brief and commercial reference, compiled October 2026 from product planning conversations. This file is the canonical upload. If a summary in `BRIEF.md` disagrees with this file, this file wins until the user changes it.
 
+30 Oct 2026 note: system routes (not-found, error, loading, icons, manifest, robots, sitemap, Open Graph) use the name ToDo App and a checklist logomark. Constants live in `src/lib/seo.ts`. This does not set per-company logos or colours, and it does not close the open product-name item for the rest of the console.
+
 Commercial model: SaaS, monthly or yearly subscriptions.
 
 Developer deal context: 75% cash of the quoted amount, 25% ownership, no unpaid AMC after cash settlement. Price accordingly.

@@ -9,7 +9,7 @@ This window sequences **P1**. Quoted P1 is 3,200 hours. One full-time developer 
 
 Counts on 30 Oct 2026, this window only: **7 done**, **1 in progress**, **11 pending**.
 
-Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window.
+Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. Platform system pages (not-found, error, loading, icons, robots, sitemap, manifest, Open Graph) use the ToDo App mark. Per-company logos and colours are still not built.
 
 ## Done
 
@@ -26,7 +26,7 @@ Repo status the same day, outside these checkboxes: customer web and `/api/v1` i
 
 - [x] Multi-tenant auth and company signup (web customer login, first admin, bearer-token `/api/v1`; Supabase migrations required; `/login` stays the dev operator gate)
 - [x] Industry selection and per-company module toggles, including industry defaults
-- [ ] Company branding. The console type and sidebar shell are in progress; per-company logos and colours are not.
+- [ ] Company branding. The console type and sidebar shell are in progress; per-company logos and colours are not. Platform 404, error, loading, and generated icons use the ToDo App mark.
 - [x] Scaffold the web app with Next.js and shadcn (`npm run dev`)
 - [ ] Scaffold iOS and Android after the mobile toolkit is chosen
 

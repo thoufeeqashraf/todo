@@ -45,3 +45,5 @@ Sell P1+P2 first ($210,000 face / $157,500 cash to the developer). Full vision f
 ## Still open
 
 See section 13 of `DEVELOPMENT-BRIEF.md` and the open list in `DECISIONS.md`. The web stack is Next.js. The mobile toolkit is still open. Each company chooses `za`, `eu`, or `multi` as its data region.
+
+System pages (not-found, error, loading, icons, manifest, robots, sitemap, and Open Graph) present the product as ToDo App. The commercial product name for the rest of the console is still the open kickoff item. Per-company logos and colours are not built.
