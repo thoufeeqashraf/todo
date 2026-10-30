@@ -12,6 +12,18 @@ Counts on 30 Oct 2026, this window only: **8 done**, **1 in progress**, **11 pen
 Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN-SYSTEM.md`, `docs/RUNBOOK.md`, and `docs/ROADMAP.md` describe that repo. They do not change the checkboxes below. `004_indexes_and_rls.sql` denies the anon and authenticated roles, indexes company and foreign-key columns, and maintains `updated_at`. `supabase/seed/demo.sql` loads sample staff, tasks, schedules, and incidents on company slug `demo-kitchen` only. See `docs/DATABASE.md`. April security acceptance is still open. Company admins also have `/customer/audit`, `/customer/team`, and `/customer/billing`. Billing there is labelled as not connected to a payment provider. The shell sidebar links those routes. The route list is also exported from `src/components/admin/nav.ts`.
 Repo status the same day, outside these checkboxes: customer web and `/api/v1` include partial slices for incidents, roster shifts, staff health, geofence attendance, Find My Staff, wallet, POS, CCTV, and mini-apps. Those slices are module-gated. Payments, map tiles, CCTV streams, email, and partner mini-apps are stubs. They are not accepted P2–P6 work and they do not pull those phases into this window. The customer staff, tasks, modules, scheduling, reports, settings, and module screens use the shadcn console (tables, filters, sheets, a weekly roster, and task charts). That pass did not change landing, auth, the app shell, or the `/customer` dashboard, and it did not finish proof media or ten-level visibility.
 
+Console screens added the same day, still outside the checkboxes. The shell should link `src/components/modules/nav.ts`. The sidebar file was left for the shell owner.
+
+| Route | Module gate | Tables |
+| --- | --- | --- |
+| `/customer/incidents` | `incidents` | `incidents` |
+| `/customer/attendance` | `geofence_attendance` | `attendance`, `geofences`, `travel_exceptions` |
+| `/customer/health` | `staff_health` | `staff_health_events` |
+| `/customer/find-my-staff` | `find_my_staff` | `staff_locations`, and `geofences` when geofence attendance is also on |
+| `/customer/wallet` | `wallet` | `wallet_accounts`, `wallet_entries` |
+| `/customer/pos` | `pos` | `pos_orders` |
+| `/customer/cctv` | `cctv` | `cameras` |
+
 ## Done
 
 - [x] Project memory, Cursor rules, and shadcn as the web UI library
