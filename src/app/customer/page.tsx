@@ -1,287 +1,126 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import {
+  Bell,
+  CalendarDays,
+  ClipboardList,
+  HeartPulse,
+  MapPin,
+  Receipt,
+  Settings,
+  Shield,
+  Sparkles,
+  Store,
+  Users,
+  Video,
+  Wallet,
+} from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getCustomerSession } from '@/lib/customer-session';
 import { supabaseAdmin } from '@/lib/supabase';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { logoutCustomer } from './actions';
 
 export const instant = false;
 
+const destinations = [
+  { href: '/customer/tasks', title: 'Tasks', body: 'Assign work and track deadlines.', icon: ClipboardList },
+  { href: '/customer/module/staff', title: 'Staff', body: 'People, departments, and invite links.', icon: Users },
+  { href: '/customer/module/scheduling', title: 'Scheduling', body: 'Shifts. AI roster fill is not built.', icon: CalendarDays },
+  { href: '/customer/module/incidents', title: 'Incidents', body: 'Tickets inside this company.', icon: Shield },
+  { href: '/customer/module/attendance', title: 'Attendance', body: 'Geofence clock-in and travel days.', icon: MapPin },
+  { href: '/customer/module/reports', title: 'Reports', body: 'Task counts for this company.', icon: Receipt },
+  { href: '/customer/module/wallet', title: 'Wallet', body: 'Ledger only. Top-up does not move money.', icon: Wallet },
+  { href: '/customer/module/pos', title: 'POS', body: 'Orders stay unpaid until a provider exists.', icon: Store },
+  { href: '/customer/module/health', title: 'Staff health', body: 'Provisional rules score for managers.', icon: HeartPulse },
+  { href: '/customer/module/find', title: 'Find My Staff', body: 'Consented coordinates. No map tiles.', icon: MapPin },
+  { href: '/customer/module/cctv', title: 'CCTV', body: 'Camera names. No live stream.', icon: Video },
+  { href: '/customer/module/notifications', title: 'Notifications', body: 'In-app notices. Email is not sent.', icon: Bell },
+  { href: '/customer/module/mini-apps', title: 'Mini-apps', body: 'Marketplace shell. No partners connected.', icon: Sparkles },
+];
+
 export default async function CustomerDashboardPage() {
   const session = await getCustomerSession();
-  
-  if (!session) {
-    redirect('/customer-login');
-  }
+  if (!session) redirect('/customer-login');
 
-  // Get company with industry
   const { data: company } = await supabaseAdmin
     .from('companies')
-    .select('*, industries(*)')
+    .select('name, region, industries(display_name)')
     .eq('id', session.companyId)
-    .single();
+    .maybeSingle();
 
-  // Get enabled modules count
   const { data: enabledModules } = await supabaseAdmin
     .from('company_modules')
-    .select('*')
+    .select('id')
     .eq('company_id', session.companyId)
     .eq('is_enabled', true);
 
-  const moduleCount = enabledModules?.length || 0;
+  const row = company as { name?: string; region?: string; industries?: { display_name?: string } | { display_name?: string }[] | null } | null;
+  const industries = row?.industries;
+  const industry = Array.isArray(industries) ? industries[0]?.display_name : industries?.display_name;
+  const firstName = session.user.first_name || 'there';
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">{company?.name}</h1>
-            <p className="text-sm text-muted-foreground">
-              {company?.industries?.display_name} · {company?.region.toUpperCase()}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <Badge variant="outline">
-              {session.user.role.charAt(0).toUpperCase() + session.user.role.slice(1)}
-            </Badge>
-            <span className="text-sm">
-              {session.user.first_name} {session.user.last_name}
-            </span>
-            <form action={logoutCustomer}>
-              <Button type="submit" variant="outline" size="sm">Sign out</Button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-2">Welcome to your dashboard</h2>
-          <p className="text-muted-foreground">
-            Manage your operations, team, and business workflows
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">{industry || 'Company'}</p>
+          <h1>Hello, {firstName}</h1>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            {row?.name || 'Your company'} · region <span className="font-numeric">{(row?.region || 'za').toUpperCase()}</span>
           </p>
         </div>
+        <Badge variant="secondary" className="capitalize">{session.user.role}</Badge>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Modules</CardTitle>
-              <CardDescription>Active features for your company</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-2">{moduleCount}</div>
-              <p className="text-sm text-muted-foreground mb-4">modules enabled</p>
-              {session.user.role === 'admin' && (
-                <Link href="/customer/modules">
-                  <Button variant="outline" size="sm">Manage Modules</Button>
-                </Link>
-              )}
-            </CardContent>
-          </Card>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card className="bg-card/80 shadow-sm">
+          <CardHeader>
+            <CardDescription>Modules on</CardDescription>
+            <CardTitle className="font-numeric text-3xl">{enabledModules?.length ?? 0}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="bg-card/80 shadow-sm">
+          <CardHeader>
+            <CardDescription>Role</CardDescription>
+            <CardTitle className="capitalize">{session.user.role}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="bg-card/80 shadow-sm">
+          <CardHeader>
+            <CardDescription>Next setup</CardDescription>
+            <CardTitle>Onboarding</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Link href="/customer/module/onboarding" className="text-sm text-primary">Open checklist</Link>
+          </CardContent>
+        </Card>
+      </div>
 
-          <Link href="/customer/tasks">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {destinations.map((item) => (
+          <Link key={item.href} href={item.href} className="group">
+            <Card className="h-full bg-card/75 shadow-sm transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md">
               <CardHeader>
-                <CardTitle>Tasks</CardTitle>
-                <CardDescription>Manage and assign work</CardDescription>
+                <item.icon className="size-4 text-primary" />
+                <CardTitle>{item.title}</CardTitle>
+                <CardDescription>{item.body}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  View and manage tasks, assignments, and deadlines
-                </p>
-              </CardContent>
             </Card>
           </Link>
-
-          <Link href="/customer/module/onboarding">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
+        ))}
+        {session.user.role === 'admin' && (
+          <Link href="/customer/modules" className="group">
+            <Card className="h-full bg-card/75 shadow-sm transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md">
               <CardHeader>
-                <CardTitle>Onboarding</CardTitle>
-                <CardDescription>Setup checklist</CardDescription>
+                <Settings className="size-4 text-primary" />
+                <CardTitle>Modules</CardTitle>
+                <CardDescription>Turn features on or off.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Industry, modules, people, and the first task
-                </p>
-              </CardContent>
             </Card>
           </Link>
-
-          <Link href="/customer/staff">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>Staff</CardTitle>
-                <CardDescription>Team management</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Manage your team members and departments
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/customer/scheduling">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>Scheduling</CardTitle>
-                <CardDescription>Shifts and rosters</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Create schedules and manage shifts
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/customer/reports">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>Reports</CardTitle>
-                <CardDescription>Analytics and insights</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  View reports and analytics
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/customer/module/incidents">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>Incidents</CardTitle>
-                <CardDescription>Module gated</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Noise, maintenance, and other tickets</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/customer/module/attendance">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>Attendance</CardTitle>
-                <CardDescription>Geofence clock-in</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Refuses clock-in outside the saved geofence</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/customer/module/wallet">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>Wallet</CardTitle>
-                <CardDescription>Ledger, payments stub</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Manual ledger only. Top-up does not move money.</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/customer/module/pos">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>POS</CardTitle>
-                <CardDescription>Orders stay unpaid</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Table orders without a payment provider</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/customer/module/cctv">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>CCTV</CardTitle>
-                <CardDescription>Registry, no stream</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Camera names only</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/customer/module/find">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>Find My Staff</CardTitle>
-                <CardDescription>Consented coordinates</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">No map provider is connected</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/customer/module/health">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>Staff health</CardTitle>
-                <CardDescription>Provisional rules score</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Visible to managers and admins</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/customer/module/mini-apps">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>Mini-apps</CardTitle>
-                <CardDescription>Marketplace shell</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">No partner APIs are connected</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/customer/module/notifications">
-            <Card className="hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>In-app notices</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Push and email delivery are not connected</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {session.user.role === 'admin' && (
-            <Link href="/customer/module/audit">
-              <Card className="hover:border-primary transition-colors cursor-pointer">
-                <CardHeader>
-                  <CardTitle>Audit log</CardTitle>
-                  <CardDescription>Company history</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">Admin-only record of changes</p>
-                </CardContent>
-              </Card>
-            </Link>
-          )}
-
-          {session.user.role === 'admin' && (
-            <Link href="/customer/settings">
-              <Card className="hover:border-primary transition-colors cursor-pointer">
-                <CardHeader>
-                  <CardTitle>Settings</CardTitle>
-                  <CardDescription>Company configuration</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Manage company settings and preferences
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-          )}
-        </div>
-      </main>
+        )}
+      </div>
     </div>
   );
 }
