@@ -6,14 +6,15 @@ import { pageSlice, parsePageQuery } from '@/lib/pagination';
 import { PlatformError } from '@/lib/platform-error';
 import { API_VERSION, API_V1_CATALOG, gateApiRoute, isUserRole, matchApiRoute, transactionJunctionTopUp } from '@/lib/platform-rules';
 import { clientAddress, consumeRateLimit, rateLimitPolicy, type RateLimitDecision } from '@/lib/rate-limit';
+import { enforceAuthInvite, enforceAuthLogin, isIsoDateTime, readJson, RequestGuardError } from '@/lib/request-guards';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import * as tenant from '@/lib/services/tenant';
 
 const roleSchema = z.enum(['admin', 'manager', 'user']);
 
 const pointSchema = z.object({
-  lat: z.number().gte(-90).lte(90).optional(),
-  lng: z.number().gte(-180).lte(180).optional(),
+  lat: z.number().finite().gte(-90).lte(90).optional(),
+  lng: z.number().finite().gte(-180).lte(180).optional(),
 });
 
 function changed<T extends z.ZodRawShape>(shape: T) {
@@ -26,7 +27,7 @@ const taskPatchSchema = changed({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(5000).nullable().optional(),
   assignedToId: z.string().uuid().nullable().optional(),
-  dueDate: z.string().min(1).nullable().optional(),
+  dueDate: z.union([z.string().max(40).refine(isIsoDateTime), z.null()]).optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   status: z.enum(['todo', 'in_progress', 'completed', 'overdue']).optional(),
 });
@@ -40,8 +41,8 @@ const staffPatchSchema = changed({
 
 const schedulePatchSchema = changed({
   userId: z.string().uuid().optional(),
-  startTime: z.string().min(1).optional(),
-  endTime: z.string().min(1).optional(),
+  startTime: z.string().max(40).refine(isIsoDateTime).optional(),
+  endTime: z.string().max(40).refine(isIsoDateTime).optional(),
   shiftType: z.enum(['regular', 'travel']).optional(),
   notes: z.string().max(2000).nullable().optional(),
   status: z.enum(['scheduled', 'started', 'completed', 'cancelled']).optional(),
@@ -70,11 +71,7 @@ function bearerToken(request: NextRequest) {
 }
 
 async function readBody(request: NextRequest) {
-  try {
-    return await request.json();
-  } catch {
-    throw new PlatformError('invalid', 'Request body must be JSON.', 400);
-  }
+  return readJson(request);
 }
 
 function page(request: NextRequest) {
@@ -100,20 +97,22 @@ async function publicRoute(request: NextRequest, path: string[], method: string)
     });
   }
   if (key === 'POST auth/login') {
+    enforceAuthLogin(request);
     const input = z
       .object({
-        email: z.string().email(),
-        password: z.string().min(1),
-        companySlug: z.string().min(1).optional(),
+        email: z.string().email().max(255),
+        password: z.string().min(1).max(200),
+        companySlug: z.string().min(1).max(100).optional(),
       })
       .parse(await readBody(request));
     return NextResponse.json(await tenant.loginWithPassword(input.email, input.password, input.companySlug));
   }
   if (key === 'POST invitations/accept') {
+    enforceAuthInvite(request);
     const input = z
       .object({
-        token: z.string().min(10),
-        password: z.string().min(8),
+        token: z.string().min(10).max(200),
+        password: z.string().min(8).max(200),
         firstName: z.string().min(1).max(100),
         lastName: z.string().min(1).max(100),
       })
@@ -145,7 +144,7 @@ async function bearerRoute(request: NextRequest, path: string[], method: string,
         title: z.string().min(1).max(255),
         description: z.string().max(5000).optional(),
         assignedToId: z.string().uuid().nullable().optional(),
-        dueDate: z.string().nullable().optional(),
+        dueDate: z.union([z.string().max(40).refine(isIsoDateTime), z.null()]).optional(),
         priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
       })
       .parse(await readBody(request));
@@ -172,7 +171,7 @@ async function bearerRoute(request: NextRequest, path: string[], method: string,
     return NextResponse.json(await tenant.createDepartment(actor, input.name, input.parentId), { status: 201 });
   }
   if (key === 'POST invitations') {
-    const input = z.object({ email: z.string().email(), role: roleSchema }).parse(await readBody(request));
+    const input = z.object({ email: z.string().email().max(255), role: roleSchema }).parse(await readBody(request));
     return NextResponse.json(await tenant.createInvitation(actor, input.email, input.role), { status: 201 });
   }
 
@@ -217,8 +216,8 @@ async function bearerRoute(request: NextRequest, path: string[], method: string,
     const input = z
       .object({
         userId: z.string().uuid(),
-        startTime: z.string().min(1),
-        endTime: z.string().min(1),
+        startTime: z.string().max(40).refine(isIsoDateTime),
+        endTime: z.string().max(40).refine(isIsoDateTime),
         shiftType: z.enum(['regular', 'travel']).optional(),
         notes: z.string().max(2000).optional(),
       })
@@ -236,8 +235,8 @@ async function bearerRoute(request: NextRequest, path: string[], method: string,
     const input = z
       .object({
         name: z.string().min(1).max(255),
-        lat: z.number().gte(-90).lte(90),
-        lng: z.number().gte(-180).lte(180),
+        lat: z.number().finite().gte(-90).lte(90),
+        lng: z.number().finite().gte(-180).lte(180),
         radiusMeters: z.number().int().positive().max(50_000),
       })
       .parse(await readBody(request));
@@ -281,7 +280,7 @@ async function bearerRoute(request: NextRequest, path: string[], method: string,
   if (key === 'POST wallet/adjustment') {
     const input = z
       .object({
-        amountCents: z.number().int().positive(),
+        amountCents: z.number().int().positive().max(2_000_000_000),
         direction: z.enum(['credit', 'debit']),
         memo: z.string().min(1).max(500),
       })
@@ -296,7 +295,7 @@ async function bearerRoute(request: NextRequest, path: string[], method: string,
       .object({
         tableLabel: z.string().min(1).max(100),
         items: z.array(z.object({ name: z.string().min(1).max(200), qty: z.number().int().positive().max(999) })).default([]),
-        totalCents: z.number().int().nonnegative(),
+        totalCents: z.number().int().nonnegative().max(2_000_000_000),
       })
       .parse(await readBody(request));
     return NextResponse.json(await tenant.createOrder(actor, input), { status: 201 });
@@ -315,8 +314,8 @@ async function bearerRoute(request: NextRequest, path: string[], method: string,
   if (key === 'POST locations') {
     const input = z
       .object({
-        lat: z.number().gte(-90).lte(90),
-        lng: z.number().gte(-180).lte(180),
+        lat: z.number().finite().gte(-90).lte(90),
+        lng: z.number().finite().gte(-180).lte(180),
         consent: z.literal(true),
       })
       .parse(await readBody(request));
@@ -377,6 +376,14 @@ export async function dispatch(request: NextRequest, path: string[], method: str
           })();
     return applyLimit(response, limit);
   } catch (error) {
+    if (error instanceof RequestGuardError) {
+      const code = error.status === 429 ? 'rate_limited' : error.status === 413 ? 'payload_too_large' : 'invalid';
+      const response = NextResponse.json(
+        { error: { code, message: error.message } },
+        { status: error.status, headers: error.retryAfter ? { 'Retry-After': String(error.retryAfter) } : undefined },
+      );
+      return applyLimit(response, limit);
+    }
     if (!(error instanceof PlatformError) && !(error instanceof z.ZodError)) console.error(error);
     const mapped = errorBody(error);
     return applyLimit(NextResponse.json(mapped.body, { status: mapped.status }), limit);

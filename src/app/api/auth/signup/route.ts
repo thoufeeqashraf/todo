@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { supabaseAdmin } from '@/lib/supabase';
-import { hashPassword, generateSlug, validateEmail, validatePassword } from '@/lib/auth-utils';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { hashPassword, slugCandidate, validateEmail, validatePassword } from '@/lib/auth-utils';
+import { PlatformError } from '@/lib/platform-error';
+import { jsonFromError } from '@/lib/json-error';
+import { enforceAuthSignup, readJson } from '@/lib/request-guards';
 import { writeAudit } from '@/lib/services/tenant';
 
 const signupSchema = z.object({
   companyName: z.string().min(2).max(255),
   industryId: z.string().uuid(),
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().email().max(255),
+  password: z.string().min(8).max(200),
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
-  region: z.string().optional().default('za'),
+  region: z.enum(['za', 'eu', 'multi']).optional().default('za'),
 });
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    enforceAuthSignup(request);
+    const body = await readJson(request);
     const data = signupSchema.parse(body);
 
     if (!validateEmail(data.email)) {
@@ -34,7 +38,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if industry exists
+    if (!slugCandidate(data.companyName, 0)) {
+      return NextResponse.json({ error: 'Invalid input data' }, { status: 400 });
+    }
+
+    if (!isSupabaseConfigured()) {
+      throw new PlatformError(
+        'not_configured',
+        'Database is not configured. Set the Supabase URL, anon key, and service role, then apply migrations 001–003.',
+        503,
+      );
+    }
+
     const { data: industry, error: industryError } = await supabaseAdmin
       .from('industries')
       .select('*')
@@ -48,27 +63,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique slug for company
-    let slug = generateSlug(data.companyName);
-    let slugExists = true;
-    let counter = 1;
-    
-    while (slugExists) {
-      const { data: existingCompany } = await supabaseAdmin
+    let slug: string | null = null;
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      const candidate = slugCandidate(data.companyName, attempt);
+      if (!candidate) break;
+      const { data: existingCompany, error: slugError } = await supabaseAdmin
         .from('companies')
         .select('id')
-        .eq('slug', slug)
-        .single();
-      
+        .eq('slug', candidate)
+        .maybeSingle();
+      if (slugError) {
+        console.error('Signup slug lookup failed');
+        return NextResponse.json({ error: 'Failed to create company' }, { status: 500 });
+      }
       if (!existingCompany) {
-        slugExists = false;
-      } else {
-        slug = `${generateSlug(data.companyName)}-${counter}`;
-        counter++;
+        slug = candidate;
+        break;
       }
     }
 
-    // Create company
+    if (!slug) {
+      return NextResponse.json({ error: 'Could not reserve a company address.' }, { status: 409 });
+    }
+
     const { data: company, error: companyError } = await supabaseAdmin
       .from('companies')
       .insert({
@@ -81,17 +98,15 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (companyError || !company) {
-      console.error('Company creation error:', companyError);
+      console.error('Company creation error');
       return NextResponse.json(
         { error: 'Failed to create company' },
         { status: 500 }
       );
     }
 
-    // Hash password
     const passwordHash = await hashPassword(data.password);
 
-    // Create admin user
     const { data: user, error: userError } = await supabaseAdmin
       .from('users')
       .insert({
@@ -106,21 +121,18 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError || !user) {
-      // Rollback: delete company if user creation fails
       await supabaseAdmin.from('companies').delete().eq('id', company.id);
-      console.error('User creation error:', userError);
+      console.error('User creation error');
       return NextResponse.json(
         { error: 'Failed to create user account' },
         { status: 500 }
       );
     }
 
-    // Get all modules
     const { data: allModules } = await supabaseAdmin
       .from('modules')
       .select('*');
 
-    // Enable default modules based on industry
     if (allModules && industry.default_modules) {
       const defaultModuleNames = industry.default_modules as string[];
       const modulesToEnable = allModules.filter((module) =>
@@ -164,16 +176,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Signup error:', error);
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input data', details: error.issues },
-        { status: 400 }
-      );
-    }
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return jsonFromError(error, 'Signup error');
   }
 }

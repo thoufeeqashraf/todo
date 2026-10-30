@@ -1,8 +1,10 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { isDevAdminLoginEnabled } from "@/lib/dev-admin-login";
+import { enforceAuthLogin, webError } from "@/lib/request-guards";
 import { clearSession, createSession } from "@/lib/session";
 import type { OperatorRole } from "@/lib/session-token";
 
@@ -14,6 +16,13 @@ export async function signIn(
 ): Promise<SignInState> {
   if (!isDevAdminLoginEnabled()) {
     return { error: "Sign-in is closed on the live site." };
+  }
+
+  try {
+    enforceAuthLogin({ headers: await headers() });
+  } catch (error) {
+    const mapped = webError(error);
+    if (mapped) return { error: mapped.body.error };
   }
 
   const username = String(formData.get("username") ?? "").trim();
