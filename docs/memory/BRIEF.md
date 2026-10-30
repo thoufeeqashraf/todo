@@ -65,3 +65,6 @@ Company admins can open `/customer/audit`, `/customer/team`, and `/customer/bill
 
 Customer analytics is `/customer/analytics`. It is available only when the reports module is on. It reads tasks, attendance, and incidents already stored for the signed-in company. It does not add tables. Incident severity is classified from `incidents.status`. The route is exported from `src/components/analytics/nav.ts` for the customer shell.
 See section 13 of `DEVELOPMENT-BRIEF.md` and the open list in `DECISIONS.md`. The web stack is Next.js. The mobile toolkit is still open. Each company chooses `za`, `eu`, or `multi` as its data region. Public pages currently say ToDo App. The development brief title is unchanged until that file is edited.
+## Help and setup (30 Oct 2026)
+
+`/help` is a public help center. Articles are static data in `src/content/help.ts`, with category filters and a page per slug. Signed-in customers open `/customer/onboarding` for five checks: create a team, invite staff, enable modules, set a geofence, and connect mobile later. The first four are done only when this company already has the matching rows. Mobile stays open. Paths for other screens are exported from `src/components/help/nav.ts`. This does not add a migration and does not move P2–P6 into the current window.
